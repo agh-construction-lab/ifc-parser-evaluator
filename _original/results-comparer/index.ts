@@ -1,7 +1,7 @@
 
 import fs from "fs";
 import path from "path";
-import { getAbsolutePath } from "../core/pathUtils.ts";
+import { getAbsolutePath } from "../_original/core/pathUtils.js";
 
 import { runServer } from "../geometry-renderer/server/index.ts";
 import { WebBrowser, renderViews } from "./web-browser/WebBrowser.ts"
