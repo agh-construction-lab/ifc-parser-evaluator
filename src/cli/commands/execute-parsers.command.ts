@@ -1,6 +1,8 @@
 import { Command, CommandRunner } from "nest-commander";
 import { ParsersRunnerService } from "../../parsers-runner/parsers-runner.service";
 import { Logger } from "@nestjs/common";
+import { GeometryRendererService } from "src/geometry-renderer/geometry-renderer.service";
+import { ResultsComparerService } from "src/results-comparer/results-comparer.service";
 
 type Props = {
   parsers: Array<string>;
@@ -15,12 +17,16 @@ type Props = {
 class ExecuteParsersCommand extends CommandRunner {
   private readonly logger = new Logger(ExecuteParsersCommand.name);
 
-  constructor(private readonly runner: ParsersRunnerService) {
+  constructor(
+    private readonly parsersRunnerService: ParsersRunnerService,
+    private readonly geometryRendererService: GeometryRendererService,
+    private readonly resultsComparerService: ResultsComparerService,
+  ) {
     super();
   }
 
   async run(args: Array<string>, { parsers, ifcFiles }: Props): Promise<void> {
-    const results = await this.runner.runAll(parsers, ifcFiles);
+    const results = await this.parsersRunnerService.runAll(parsers, ifcFiles);
 
     for (const parsingResult of results) {
       const { name, errors, durationMs } = parsingResult;
@@ -35,6 +41,12 @@ class ExecuteParsersCommand extends CommandRunner {
         );
       }
     }
+
+    this.geometryRendererService.runServer();
+    await this.resultsComparerService.compareResults(
+      "results/web-ifc",
+      "results/ifc-open-shell",
+    );
 
     // for (const r of results) {
     //   console.log(
