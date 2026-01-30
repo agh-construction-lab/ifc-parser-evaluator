@@ -104,9 +104,9 @@ for (const filePath of ifcFiles) {
   const processingTimeMs = Date.now() - startTime;
 
   const ifcFileName = filePath.split("/").pop() ?? "output";
-  const outputFilePath = `${outputDir}/${ifcFileName}`.replace(".ifc", ".json");
-  const outputFileName = outputFilePath.split("/").pop() ?? "";
-  const outputDirectoryPath = outputFilePath.replace(outputFileName, "");
+  const baseName = ifcFileName.replace(".ifc", "");
+  const outputDirectoryPath = `${outputDir}/${baseName}`;
+  const outputFilePath = `${outputDirectoryPath}/${baseName}.json`;
 
   fs.mkdirSync(outputDirectoryPath, { recursive: true });
 

@@ -7,6 +7,6 @@ import { GeometryRendererModule } from "../geometry-renderer/geometry-renderer.m
 @Module({
   imports: [GeometryRendererModule],
   providers: [ResultsComparerService, ImageComparerService, WebBrowserService],
-  exports: [ResultsComparerService],
+  exports: [ResultsComparerService, WebBrowserService],
 })
 export class ResultsComparerModule {}

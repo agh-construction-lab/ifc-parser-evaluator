@@ -32,5 +32,6 @@
     "**/*spec.ts",
     "_external",
     "_original",
+    "src/geometry-renderer/public"
   ]
 }

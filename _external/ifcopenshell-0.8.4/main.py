@@ -74,9 +74,10 @@ for path in ifc_files_paths:
   processing_time_ms = int((time.time() - start_time) * 1000)
 
   # saving results
-  input_file_name = os.path.basename(path).replace(".ifc", ".json")
-  output_file_path = os.path.join(output_directory, input_file_name)
-  os.makedirs(output_directory, exist_ok=True)
+  base_name = os.path.basename(path).replace(".ifc", "")
+  output_subdir = os.path.join(output_directory, base_name)
+  output_file_path = os.path.join(output_subdir, f"{base_name}.json")
+  os.makedirs(output_subdir, exist_ok=True)
 
   result = {
       "metadata": {

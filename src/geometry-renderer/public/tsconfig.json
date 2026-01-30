@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ES2022",
+        "moduleResolution": "bundler",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "outDir": "../../../dist/geometry-renderer/public",
+        "rootDir": ".",
+        "strict": false,
+        "noEmit": false,
+        "declaration": false
+    },
+    "include": [
+        "*.ts"
+    ],
+    "exclude": []
+}
