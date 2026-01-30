@@ -1,4 +1,4 @@
-import { IfcAPI } from "web-ifc";
+import type { IfcAPI } from "web-ifc";
 
 const getAmounts = (modelID: number, ifcApi: IfcAPI) => {
   const allModelTypes = ifcApi.GetAllTypesOfModel(modelID);

@@ -136,23 +136,15 @@ def get_geometry_data(ifc_file: ifcopenshell.file):
 
             geometry_data[global_id] = {
                 "ifcClass": type_name,
-                "positions": verts,
-                "normals": normals,
-                "indexes": indexes,
+                "mesh": {
+                    "positions": verts,
+                    "normals": normals,
+                    "indices": indexes,
+                },
                 "matrix": matrix,
             }
 
             if not iterator.next():
                 break
 
-    print("")
-
-    print("Entites geometries: " + str(len(geometry_data)))
-    # print("Entites geometries:")
-    # for global_id in geometry_data:
-    #     data = geometry_data[global_id]
-
-    #     print(f"{global_id}:" + " { " + f"positions: {len(data['positions'])}, " + f"normals: {len(data['normals'])}, " + f"indexes: {len(data['indexes'])}" + " }")
-
-    print("");
     return geometry_data

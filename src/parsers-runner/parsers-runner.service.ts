@@ -3,13 +3,20 @@ import { spawn } from "node:child_process";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 
+type ParsersRunInput = {
+  parsers: ReadonlyArray<string>;
+  ifcFiles: Array<string>;
+  outputDir: string;
+};
+
+type ParserRunProps = {
+  parser: string;
+} & Pick<ParsersRunInput, "ifcFiles" | "outputDir">;
+
 type ParserRunResult = {
   name: string;
   errors: Array<string>;
-  // signal: NodeJS.Signals | null;
   durationMs: number;
-  // stdout: string;
-  // stderr: string;
 };
 
 function getEmptyResult(name: string): ParserRunResult {
@@ -17,10 +24,6 @@ function getEmptyResult(name: string): ParserRunResult {
     name,
     errors: ["Parser not found"],
     durationMs: 0,
-    // errors: ["Parser not found"],
-    // signal: null,
-    // stdout: "",
-    // stderr: "",
   };
 }
 
@@ -30,28 +33,26 @@ const TIMEOUT_MS = 10 * 60_000; // 10 min
 export class ParsersRunnerService {
   private readonly logger = new Logger(ParsersRunnerService.name);
 
-  async runAll(parsers: ReadonlyArray<string>, ifcFiles: Array<string>) {
+  async runAll(props: ParsersRunInput): Promise<Array<ParserRunResult>> {
+    const { parsers, ifcFiles, outputDir } = props;
     const results: Array<ParserRunResult> = [];
 
     for (const parser of parsers) {
       this.logger.log(`Starting parser "${parser}"`);
-      const res = await this.runOne({ parser, ifcFiles });
+      const res = await this.runOne({ parser, ifcFiles, outputDir });
       results.push(res);
     }
 
     return results;
   }
 
-  private async runOne(params: {
-    parser: string;
-    ifcFiles: Array<string>;
-  }): Promise<ParserRunResult> {
-    const { parser, ifcFiles } = params;
+  private async runOne(params: ParserRunProps): Promise<ParserRunResult> {
+    const { parser, ifcFiles, outputDir } = params;
     const dir = path.resolve(process.cwd(), "_external", parser);
-    const script = path.join(dir, "run.sh");
+    const scriptPath = path.join(dir, "run.sh");
 
     const doesParserExist = await fs
-      .access(dir)
+      .access(scriptPath)
       .then(() => true)
       .catch(() => false);
 
@@ -64,24 +65,31 @@ export class ParsersRunnerService {
     }
 
     const started = Date.now();
-    const child = spawn("bash", [script, ...ifcFiles], {
-      cwd: dir,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+
+    const child = spawn(
+      "bash",
+      [scriptPath, JSON.stringify(ifcFiles), `${outputDir}/${parser}`],
+      {
+        cwd: dir,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: process.env,
+      },
+    );
+
+    child.stdout?.on("data", (buffer: Buffer) => {
+      const text = buffer.toString();
+      process.stdout.write(text);
     });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout?.on("data", (buffer: Buffer) => (stdout += buffer.toString()));
-    child.stderr?.on("data", (buffer: Buffer) => (stderr += buffer.toString()));
+    child.stderr?.on("data", (buffer: Buffer) => {
+      const text = buffer.toString();
+      process.stderr.write(text);
+    });
 
     const exit = await new Promise<{
       code: number | null;
       signal: NodeJS.Signals | null;
     }>((resolve) => {
       const timer = setTimeout(() => {
-        stderr += `\n[timeout] Killed after ${TIMEOUT_MS}ms\n`;
         child.kill("SIGKILL");
       }, TIMEOUT_MS);
 
@@ -92,16 +100,12 @@ export class ParsersRunnerService {
     });
 
     const durationMs = Date.now() - started;
-    const ok = exit.code === 0;
+    const hasError = exit.code !== 0;
 
     return {
       name: parser,
-      errors: ok ? [] : [`Process exited with code ${exit.code}`],
+      errors: hasError ? [`Process exited with code ${exit.code}`] : [],
       durationMs,
-      // exitCode: exit.code,
-      // signal: exit.signal,
-      // stdout,
-      // stderr,
     };
   }
 }

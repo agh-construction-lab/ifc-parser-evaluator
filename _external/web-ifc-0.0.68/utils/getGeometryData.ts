@@ -1,8 +1,10 @@
 import * as THREE from "three";
+
 import { IfcAPI, LogLevel, type FlatMesh } from "web-ifc";
 
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-
+import { yUP_TO_zUP_MATRIX } from "../constants/matrices.ts";
+import { IfcLine, GeometryEntry } from "../types.ts";
 
 const DEFAULT_MATERIAL = new THREE.MeshPhongMaterial({
   color: new THREE.Color("#000000"),
@@ -11,15 +13,7 @@ const DEFAULT_MATERIAL = new THREE.MeshPhongMaterial({
 });
 
 const getGeometryData = (ifcApi: IfcAPI, modelID: number) => {
-  const geometryData: Record<
-    string,
-    {
-      ifcClass: string;
-      positions: Array<number>;
-      normals: Array<number>;
-      indexes: Array<number>;
-    }
-  > = {};
+  const geometries: Record<string, GeometryEntry> = {};
   const threeGeometries: Array<THREE.BufferGeometry> = [];
 
   ifcApi.SetLogLevel(LogLevel.LOG_LEVEL_OFF);
@@ -27,30 +21,13 @@ const getGeometryData = (ifcApi: IfcAPI, modelID: number) => {
     const placedGeometries = mesh.geometries;
     const amountOfPlacedGeometries = placedGeometries.size();
 
-    const line = ifcApi.GetLine(modelID, mesh.expressID);
-    const typeCode = ifcApi.GetLineType(modelID, mesh.expressID);
+    const line = ifcApi.GetLine(modelID, mesh.expressID) as IfcLine;
+    const typeCode = ifcApi.GetLineType(modelID, mesh.expressID) as number;
     const typeName = ifcApi.GetNameFromTypeCode(typeCode);
     const globalId = line.GlobalId.value;
-    const name = line.Name?.value;
     const type = line.constructor.name;
 
-    console.log(
-      `Porcessing geometry: #${line.expressID} ${typeName} "${name}" (${globalId})`,
-    );
-
     if (type !== "IfcOpeningElement" && type !== "IfcSpace") {
-      console.log(
-        globalId,
-        typeName,
-        "has",
-        amountOfPlacedGeometries,
-        "geometries",
-      );
-
-      // const placedGeometryVertices = [];
-      // const placedGeometryNormals = [];
-      // const placedGeometryIndexes = [];
-
       const entityGeometies: Array<THREE.BufferGeometry> = [];
 
       for (let i = 0; i < amountOfPlacedGeometries; i++) {
@@ -69,8 +46,8 @@ const getGeometryData = (ifcApi: IfcAPI, modelID: number) => {
           geometry.GetIndexDataSize(),
         );
 
-        let positions = new Float32Array(verticesData.length / 2);
-        let normals = new Float32Array(verticesData.length / 2);
+        const positions = new Float32Array(verticesData.length / 2);
+        const normals = new Float32Array(verticesData.length / 2);
 
         // console.log("verticesData", verticesData.join(", "));
 
@@ -96,13 +73,6 @@ const getGeometryData = (ifcApi: IfcAPI, modelID: number) => {
           new THREE.BufferAttribute(normals, 3),
         );
         meshGeometry.setIndex(new THREE.BufferAttribute(indexes, 1));
-
-        const zUP_TO_yUP_MATRIX = new THREE.Matrix4().fromArray([
-          1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1,
-        ]);
-        const yUP_TO_zUP_MATRIX = new THREE.Matrix4().fromArray([
-          1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1,
-        ]);
 
         const mat = new THREE.Matrix4();
         mat.fromArray(placedGeometryMatrix);
@@ -144,51 +114,27 @@ const getGeometryData = (ifcApi: IfcAPI, modelID: number) => {
       const entityGeometryData = {
         positions: positions.array,
         normals: normals.array,
-        indexes: indexes.array,
+        indices: indexes.array,
       };
 
-      geometryData[globalId] = {
+      // Identity matrix since transforms are baked into vertex positions
+      const identityMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+
+      geometries[globalId] = {
         ifcClass: typeName,
-        positions: [...entityGeometryData.positions],
-        normals: [...entityGeometryData.normals],
-        indexes: [...entityGeometryData.indexes],
+        mesh: {
+          positions: [...entityGeometryData.positions],
+          normals: [...entityGeometryData.normals],
+          indices: [...entityGeometryData.indices],
+        },
+        matrix: identityMatrix,
       };
     }
   });
 
   ifcApi.SetLogLevel(LogLevel.LOG_LEVEL_DEBUG);
 
-  console.log("");
-
-  console.log("Entites geometries:", Object.keys(geometryData).length);
-
-  for (const [key, value] of Object.entries(geometryData)) {
-    // console.log(`${key}: { positions: ${value.positions.length}, normals: ${value.normals.length}, indexes: ${value.indexes.length} }`);
-  }
-
-  console.log("");
-
-  // console.log("Merging all geometries")
-  // const combinedGeometry = mergeGeometries(threeGeometries);
-
-  // if (combinedGeometry) {
-  //     const mergedMesh = new THREE.Mesh(combinedGeometry, DEFAULT_MATERIAL);
-  //     // mergedMesh.geometry = mergeVertices(mergedMesh.geometry);
-
-  //     const positions = mergedMesh.geometry.attributes.position;
-  //     const normals = mergedMesh.geometry.attributes.normal;
-  //     const indexes = mergedMesh.geometry.getIndex();
-
-  //     if (indexes == null) {
-  //         throw new Error("Indexes are null");
-  //     }
-
-  //     console.log("Amount of vertex positions", positions.count, `(array: ${positions.array.length})`);
-  //     console.log("Amount of vertex normals", normals.count, `(array: ${normals.array.length})`);
-  //     console.log("Amount of vertex indexes", indexes.count, `(array: ${indexes.array.length})`);
-  // }
-
-  return geometryData;
+  return geometries;
 };
 
 export { getGeometryData };

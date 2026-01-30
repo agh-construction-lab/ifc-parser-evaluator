@@ -221,6 +221,35 @@ class Tree:
             "IfcProject": [self.get_node_data_with_grouped_children(self.project)],
         }
     
+    def get_spatial_tree(self):
+        """Returns spatial tree in standardized format (v1.0.0)"""
+        return [self._node_to_spatial_format(self.project)]
+    
+    def _node_to_spatial_format(self, node):
+        """Convert node to standardized spatial format"""
+        properties = {}
+        quantities = {}
+
+        for property_set in node.property_sets:
+            properties[property_set.name] = {}
+            for prop in property_set.properties:
+                properties[property_set.name][prop["name"]] = prop["value"]
+
+        for quantity_set in node.quantity_sets:
+            quantities[quantity_set.name] = {}
+            for quant in quantity_set.quantities:
+                quantities[quantity_set.name][quant["name"]] = quant["value"]
+
+        return {
+            "expressId": node.id,
+            "globalId": node.global_id,
+            "ifcClass": node.type,
+            "name": node.name,
+            "properties": properties,
+            "quantities": quantities,
+            "children": [self._node_to_spatial_format(child) for child in node.children],
+        }
+    
     def get_node_data_with_grouped_children(self, node):
         grouped_children = {}
 

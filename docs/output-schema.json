@@ -1,0 +1,236 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://agh-construction-lab.github.io/ifc-parser-evaluator/output-schema.json",
+    "title": "IFC Parser Output Schema",
+    "description": "Standardized output format for IFC parser evaluation results",
+    "type": "object",
+    "required": [
+        "metadata",
+        "summary",
+        "spatialTree",
+        "geometries"
+    ],
+    "properties": {
+        "metadata": {
+            "type": "object",
+            "description": "Information about the parsing process",
+            "required": [
+                "parserName",
+                "parserVersion",
+                "sourceFile",
+                "schemaVersion",
+                "processedAt"
+            ],
+            "properties": {
+                "parserName": {
+                    "type": "string",
+                    "description": "Name of the parser library",
+                    "examples": [
+                        "web-ifc",
+                        "ifcopenshell"
+                    ]
+                },
+                "parserVersion": {
+                    "type": "string",
+                    "description": "Version of the parser library",
+                    "examples": [
+                        "0.0.68",
+                        "0.8.4"
+                    ]
+                },
+                "sourceFile": {
+                    "type": "string",
+                    "description": "Name of the source IFC file",
+                    "examples": [
+                        "primitive-beam.ifc"
+                    ]
+                },
+                "schemaVersion": {
+                    "type": "string",
+                    "description": "IFC schema version detected in the file",
+                    "enum": [
+                        "IFC2X3",
+                        "IFC4",
+                        "IFC4X1",
+                        "IFC4X2",
+                        "IFC4X3"
+                    ]
+                },
+                "processedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO 8601 timestamp of when parsing completed"
+                },
+                "processingTimeMs": {
+                    "type": "integer",
+                    "description": "Time taken to parse the file in milliseconds",
+                    "minimum": 0
+                }
+            }
+        },
+        "summary": {
+            "type": "object",
+            "description": "Summary statistics about parsed entities",
+            "required": [
+                "totalEntityCount",
+                "entityCountByType"
+            ],
+            "properties": {
+                "totalEntityCount": {
+                    "type": "integer",
+                    "description": "Total number of IFC entities in the file",
+                    "minimum": 0
+                },
+                "entityCountByType": {
+                    "type": "object",
+                    "description": "Count of entities grouped by IFC type",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                }
+            }
+        },
+        "spatialTree": {
+            "type": "array",
+            "description": "Hierarchical spatial structure starting from IfcProject",
+            "items": {
+                "$ref": "#/$defs/SpatialNode"
+            }
+        },
+        "geometries": {
+            "type": "object",
+            "description": "Geometry data indexed by GlobalId",
+            "additionalProperties": {
+                "$ref": "#/$defs/GeometryEntry"
+            }
+        }
+    },
+    "$defs": {
+        "SpatialNode": {
+            "type": "object",
+            "required": [
+                "expressId",
+                "globalId",
+                "ifcClass",
+                "children"
+            ],
+            "properties": {
+                "expressId": {
+                    "type": "integer",
+                    "description": "EXPRESS entity instance identifier (line number in STEP file)"
+                },
+                "globalId": {
+                    "type": "string",
+                    "description": "IFC GlobalId (22-character base64 identifier)",
+                    "pattern": "^[0-9A-Za-z_$]{22}$"
+                },
+                "ifcClass": {
+                    "type": "string",
+                    "description": "IFC entity type name",
+                    "examples": [
+                        "IfcProject",
+                        "IfcSite",
+                        "IfcBuilding",
+                        "IfcBuildingStorey",
+                        "IfcBeam"
+                    ]
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "description": "Human-readable name of the entity"
+                },
+                "properties": {
+                    "type": "object",
+                    "description": "Property sets (IfcPropertySet) attached to this entity",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": [
+                                "string",
+                                "number",
+                                "boolean",
+                                "null"
+                            ]
+                        }
+                    }
+                },
+                "quantities": {
+                    "type": "object",
+                    "description": "Quantity sets (IfcElementQuantity) attached to this entity",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "children": {
+                    "type": "array",
+                    "description": "Child entities in the spatial hierarchy",
+                    "items": {
+                        "$ref": "#/$defs/SpatialNode"
+                    }
+                }
+            }
+        },
+        "GeometryEntry": {
+            "type": "object",
+            "required": [
+                "ifcClass",
+                "mesh",
+                "matrix"
+            ],
+            "properties": {
+                "ifcClass": {
+                    "type": "string",
+                    "description": "IFC entity type name"
+                },
+                "matrix": {
+                    "type": "array",
+                    "description": "4x4 transformation matrix as flat array (column-major order) [m00,m10,m20,m30, m01,m11,m21,m31, m02,m12,m22,m32, m03,m13,m23,m33]",
+                    "items": {
+                        "type": "number"
+                    },
+                    "minItems": 16,
+                    "maxItems": 16
+                },
+                "mesh": {
+                    "type": "object",
+                    "required": [
+                        "positions",
+                        "normals",
+                        "indices"
+                    ],
+                    "properties": {
+                        "positions": {
+                            "type": "array",
+                            "description": "Vertex positions as flat array [x1,y1,z1, x2,y2,z2, ...]",
+                            "items": {
+                                "type": "number"
+                            }
+                        },
+                        "normals": {
+                            "type": "array",
+                            "description": "Vertex normals as flat array [nx1,ny1,nz1, nx2,ny2,nz2, ...]",
+                            "items": {
+                                "type": "number"
+                            }
+                        },
+                        "indices": {
+                            "type": "array",
+                            "description": "Triangle indices as flat array [i1,i2,i3, i4,i5,i6, ...]",
+                            "items": {
+                                "type": "integer",
+                                "minimum": 0
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

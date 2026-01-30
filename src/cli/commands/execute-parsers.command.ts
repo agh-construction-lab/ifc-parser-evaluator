@@ -7,6 +7,7 @@ import { ResultsComparerService } from "src/results-comparer/results-comparer.se
 type Props = {
   parsers: Array<string>;
   ifcFiles: Array<string>;
+  outputDir: string;
 };
 
 @Command({
@@ -25,8 +26,8 @@ class ExecuteParsersCommand extends CommandRunner {
     super();
   }
 
-  async run(args: Array<string>, { parsers, ifcFiles }: Props): Promise<void> {
-    const results = await this.parsersRunnerService.runAll(parsers, ifcFiles);
+  async run(args: Array<string>, props: Props): Promise<void> {
+    const results = await this.parsersRunnerService.runAll(props);
 
     for (const parsingResult of results) {
       const { name, errors, durationMs } = parsingResult;
@@ -42,11 +43,11 @@ class ExecuteParsersCommand extends CommandRunner {
       }
     }
 
-    this.geometryRendererService.runServer();
-    await this.resultsComparerService.compareResults(
-      "results/web-ifc",
-      "results/ifc-open-shell",
-    );
+    // this.geometryRendererService.runServer();
+    // await this.resultsComparerService.compareResults(
+    //   "results/web-ifc",
+    //   "results/ifc-open-shell",
+    // );
 
     // for (const r of results) {
     //   console.log(
