@@ -4,7 +4,7 @@ Chart.defaults.borderColor = '#30363d';
 
 // Initialize charts with data from window.reportData
 (function () {
-    const { matchRateData, processingTimeData, vertexData, triangleData } = window.reportData;
+    const { matchRateData, processingTimeData, vertexData, uniqueVertexData, triangleData } = window.reportData;
 
     // Match Rate Chart
     new Chart(document.getElementById('matchRateChart'), {
@@ -63,7 +63,7 @@ Chart.defaults.borderColor = '#30363d';
         }
     });
 
-    // Vertex Count Chart
+    // Total Vertex Count Chart
     new Chart(document.getElementById('vertexChart'), {
         type: 'bar',
         data: {
@@ -71,6 +71,30 @@ Chart.defaults.borderColor = '#30363d';
             datasets: vertexData[0]?.parsers.map((parser, i) => ({
                 label: parser,
                 data: vertexData.map(d => d.counts[i] || 0),
+                backgroundColor: i === 0 ? '#58a6ff' : '#a371f7',
+                borderRadius: 4,
+            })) || []
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Unique Vertex Count Chart
+    new Chart(document.getElementById('uniqueVertexChart'), {
+        type: 'bar',
+        data: {
+            labels: uniqueVertexData.map(d => d.file),
+            datasets: uniqueVertexData[0]?.parsers.map((parser, i) => ({
+                label: parser,
+                data: uniqueVertexData.map(d => d.counts[i] || 0),
                 backgroundColor: i === 0 ? '#58a6ff' : '#a371f7',
                 borderRadius: 4,
             })) || []

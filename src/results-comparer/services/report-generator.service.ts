@@ -178,10 +178,17 @@ export class ReportGeneratorService {
       })),
     );
 
-    // Vertex count data
+    // Vertex count data (total)
     const vertexData = comparisons.map((c) => ({
       file: c.ifcFileName,
       counts: c.geometry.totalVertexCounts,
+      parsers: c.parsers.map((p) => p.parserName),
+    }));
+
+    // Unique vertex count data
+    const uniqueVertexData = comparisons.map((c) => ({
+      file: c.ifcFileName,
+      counts: c.geometry.uniqueVertexCounts,
       parsers: c.parsers.map((p) => p.parserName),
     }));
 
@@ -197,6 +204,7 @@ export class ReportGeneratorService {
       matchRateData,
       processingTimeData,
       vertexData,
+      uniqueVertexData,
       triangleData,
     });
 
