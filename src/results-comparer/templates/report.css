@@ -275,6 +275,10 @@ th {
     background: var(--accent-green);
 }
 
+.match-icon.warning {
+    background: var(--accent-orange);
+}
+
 .match-icon.no {
     background: var(--accent-red);
 }

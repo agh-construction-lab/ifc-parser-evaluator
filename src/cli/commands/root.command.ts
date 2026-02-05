@@ -8,9 +8,13 @@ import { Logger } from "@nestjs/common";
 import path from "path";
 
 const PARSERS = ["web-ifc-0.0.68", "ifcopenshell-0.8.4"];
-const IFC_FILES = ["_ifc-input/primitives/primitive-beam.ifc"].map((p) =>
-  path.resolve(process.cwd(), p),
-);
+const IFC_FILES = [
+  "_ifc-input/agh/IDS_B_LOD1.ifc",
+  "_ifc-input/agh/IDS_B_LOD4_ARCH.ifc",
+  "_ifc-input/primitives/primitive-beam.ifc",
+  "_ifc-input/primitives/primitive-column.ifc",
+  "_ifc-input/primitives/primitive-door.ifc",
+].map((p) => path.resolve(process.cwd(), p));
 
 // const EXPERIMENT_ID = "2026-01-30__10-26-00";
 const EXPERIMENT_ID = new Date()

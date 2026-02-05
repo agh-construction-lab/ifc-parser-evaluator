@@ -300,22 +300,38 @@ export class ReportGeneratorService {
     // Prepare view data for images
     // Convert absolute paths to relative paths (relative to report location in _comparison/{fileName}/)
     const views = comparison.images.views.map((v, i) => {
-      // Parser images are at ../../{parser}/{fileName}/{view}.png
+      // Parser folder names include version: {parserName}-{parserVersion}
+      const parserAFolder = comparison.parsers[0]
+        ? `${comparison.parsers[0].parserName}-${comparison.parsers[0].parserVersion}`
+        : "";
+      const parserBFolder = comparison.parsers[1]
+        ? `${comparison.parsers[1].parserName}-${comparison.parsers[1].parserVersion}`
+        : "";
+
+      // Parser images are at ../../{parser-version}/{fileName}/{view}.png
       // Diff images are in the same folder as the report
       const imageAPath = v.imagePaths[0]
-        ? `../../${comparison.parsers[0]?.parserName}/${comparison.ifcFileName}/${path.basename(v.imagePaths[0])}`
+        ? `../../${parserAFolder}/${comparison.ifcFileName}/${path.basename(v.imagePaths[0])}`
         : "";
       const imageBPath = v.imagePaths[1]
-        ? `../../${comparison.parsers[1]?.parserName}/${comparison.ifcFileName}/${path.basename(v.imagePaths[1])}`
+        ? `../../${parserBFolder}/${comparison.ifcFileName}/${path.basename(v.imagePaths[1])}`
         : "";
       const diffImagePath = v.diffImagePath
         ? path.basename(v.diffImagePath)
         : "";
 
+      // Determine match class: yes (0%), warning (<=0.5%), no (>0.5%)
+      let matchClass = "no";
+      if (v.pixelDiffPercentage === 0) {
+        matchClass = "yes";
+      } else if (v.pixelDiffPercentage <= 0.5) {
+        matchClass = "warning";
+      }
+
       return {
         viewId: `${v.viewName}-${comparison.ifcFileName}`,
         viewName: v.viewName,
-        matchClass: v.match ? "yes" : "no",
+        matchClass,
         parserAName: comparison.parsers[0]?.parserName || "Parser A",
         parserBName: comparison.parsers[1]?.parserName || "Parser B",
         imageAPath,
