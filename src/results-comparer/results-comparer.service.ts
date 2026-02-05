@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ImageComparerService } from "./services/image-comparer.service";
-import { WebBrowserService } from "./services/web-browser.service";
+import { WebBrowserService } from "../geometry-renderer/web-browser.service";
 import { GeometryRendererService } from "../geometry-renderer/geometry-renderer.service";
 
 @Injectable()
