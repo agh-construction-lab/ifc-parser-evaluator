@@ -126,7 +126,7 @@ header .file-name {
     transition: transform 0.2s;
 }
 
-.collapsible-section.open .toggle-icon {
+.collapsible-section.open>.toggle-icon {
     transform: rotate(180deg);
 }
 
@@ -136,8 +136,62 @@ header .file-name {
     border-top: 1px solid var(--border-color);
 }
 
-.collapsible-section.open .collapsible-content {
+.collapsible-section.open>.collapsible-content {
     display: block;
+}
+
+/* Inner Collapsible (Matrix Comparison, Visual Comparison) */
+.inner-collapsible {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin: 1rem 0 0 0;
+}
+
+.inner-collapsible .collapsible-header {
+    padding: 0.75rem 1rem;
+}
+
+.inner-collapsible .collapsible-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.inner-collapsible .collapsible-content {
+    display: none;
+    padding: 1rem;
+}
+
+/* Class Collapsible (Geometry Charts by IFC Class) */
+.class-collapsible {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin: 0 0 1rem 0;
+}
+
+.class-collapsible .collapsible-header {
+    padding: 0.75rem 1rem;
+}
+
+.class-collapsible .collapsible-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.class-collapsible .collapsible-content {
+    display: none;
+    padding: 1rem;
+}
+
+.class-collapsible.open .collapsible-content {
+    display: block;
+}
+
+.class-collapsible .charts-grid {
+    margin-bottom: 0;
 }
 
 .toggle-label {
@@ -247,6 +301,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
+    table-layout: fixed;
 }
 
 th,
@@ -254,6 +309,21 @@ td {
     text-align: left;
     padding: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Table column widths */
+.file-details table th:first-child,
+.file-details table td:first-child {
+    width: 35%;
+}
+
+.file-details table th:last-child,
+.file-details table td:last-child {
+    width: 60px;
+    text-align: center;
 }
 
 th {

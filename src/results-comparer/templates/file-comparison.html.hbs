@@ -1,5 +1,5 @@
 <div class="file-comparison collapsible-section">
-    <div class="file-header collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+    <div class="file-header collapsible-header">
         <h2>Detailed Comparisons</h2>
         <div class="file-stats">
             <span class="stat-badge {{schemaMatchClass}}">
@@ -37,6 +37,28 @@
                         <td>{{this.processingTimeMs}} ms</td>
                     </tr>
                 {{/each}}
+            </tbody>
+        </table>
+
+        <h4 style="margin-top: 1rem;">Metadata Comparison</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    {{#each parsers}}
+                        <th>{{this.parserName}}</th>
+                    {{/each}}
+                    <th>Match</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Schema Version</td>
+                    {{#each metadata.schemaVersions}}
+                        <td>{{this}}</td>
+                    {{/each}}
+                    <td><span class="match-icon {{schemaVersionMatchClass}}"></span></td>
+                </tr>
             </tbody>
         </table>
 
@@ -113,76 +135,90 @@
         </table>
 
         {{#if hasMatrixData}}
-            <h4 style="margin-top: 1rem;">Matrix Comparison</h4>
-            {{#each matrixEntities}}
-                <div class="matrix-entity">
-                    <div class="matrix-entity-header">
-                        <span class="entity-id">{{this.globalId}}</span>
-                        <span class="entity-class">({{this.ifcClass}})</span>
-                        <span class="match-icon {{this.matchClass}}"></span>
-                    </div>
-                    <div class="matrix-grid">
-                        {{#each this.parserMatrices}}
-                            <div class="matrix-card">
-                                <div class="label">{{this.parserName}}</div>
-                                <table class="matrix-table">
-                                    {{#each this.rows}}
-                                        <tr>
-                                            {{#each this}}
-                                                <td>{{this}}</td>
+            <div class="collapsible-section inner-collapsible">
+                <div class="collapsible-header">
+                    <h4>Matrix Comparison</h4>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    {{#each matrixEntities}}
+                        <div class="matrix-entity">
+                            <div class="matrix-entity-header">
+                                <span class="entity-id">{{this.globalId}}</span>
+                                <span class="entity-class">({{this.ifcClass}})</span>
+                                <span class="match-icon {{this.matchClass}}"></span>
+                            </div>
+                            <div class="matrix-grid">
+                                {{#each this.parserMatrices}}
+                                    <div class="matrix-card">
+                                        <div class="label">{{this.parserName}}</div>
+                                        <table class="matrix-table">
+                                            {{#each this.rows}}
+                                                <tr>
+                                                    {{#each this}}
+                                                        <td>{{this}}</td>
+                                                    {{/each}}
+                                                </tr>
                                             {{/each}}
-                                        </tr>
-                                    {{/each}}
-                                </table>
+                                        </table>
+                                    </div>
+                                {{/each}}
+                            </div>
+                        </div>
+                    {{/each}}
+                </div>
+            </div>
+        {{/if}}
+
+        {{#if hasImages}}
+            <div class="collapsible-section inner-collapsible">
+                <div class="collapsible-header">
+                    <h4>Visual Comparison</h4>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="image-comparison-section">
+                        <div class="view-tabs">
+                            {{#each views}}
+                                <button class="view-tab {{#if @first}}active{{/if}}" data-view="{{this.viewId}}">
+                                    {{this.viewName}}
+                                    <span class="match-icon {{this.matchClass}}" style="margin-left: 0.5rem;"></span>
+                                </button>
+                            {{/each}}
+                        </div>
+                        {{#each views}}
+                            <div class="view-content {{#if @first}}active{{/if}}" id="{{this.viewId}}">
+                                <div class="image-comparison-grid">
+                                    <div class="image-comparison-card">
+                                        <div class="label">{{this.parserAName}}</div>
+                                        <img src="{{this.imageAPath}}" alt="Result A" onerror="this.style.display='none'">
+                                    </div>
+                                    <div class="image-comparison-card">
+                                        <div class="label">{{this.parserBName}}</div>
+                                        <img src="{{this.imageBPath}}" alt="Result B" onerror="this.style.display='none'">
+                                    </div>
+                                    <div class="image-comparison-card">
+                                        <div class="label">Difference ({{this.diffPercentage}})</div>
+                                        <img src="{{this.diffImagePath}}" alt="Diff" onerror="this.style.display='none'">
+                                    </div>
+                                </div>
+                                <div class="onion-slider-container">
+                                    <div class="label">Onion Skin Comparison</div>
+                                    <div class="onion-slider-wrapper">
+                                        <img class="image-a" src="{{this.imageAPath}}" alt="Result A">
+                                        <img class="image-b" src="{{this.imageBPath}}" alt="Result B" id="{{this.onionId}}">
+                                    </div>
+                                    <div class="onion-slider-controls">
+                                        <span class="slider-label">{{this.parserAName}}</span>
+                                        <input type="range" min="0" max="100" value="50"
+                                            oninput="document.getElementById('{{this.onionId}}').style.opacity = this.value / 100">
+                                        <span class="slider-label">{{this.parserBName}}</span>
+                                    </div>
+                                </div>
                             </div>
                         {{/each}}
                     </div>
                 </div>
-            {{/each}}
-        {{/if}}
-
-        {{#if hasImages}}
-            <div class="image-comparison-section">
-                <h4 style="margin-top: 1rem;">Visual Comparison</h4>
-                <div class="view-tabs">
-                    {{#each views}}
-                        <button class="view-tab {{#if @first}}active{{/if}}" data-view="{{this.viewId}}">
-                            {{this.viewName}}
-                            <span class="match-icon {{this.matchClass}}" style="margin-left: 0.5rem;"></span>
-                        </button>
-                    {{/each}}
-                </div>
-                {{#each views}}
-                    <div class="view-content {{#if @first}}active{{/if}}" id="{{this.viewId}}">
-                        <div class="image-comparison-grid">
-                            <div class="image-comparison-card">
-                                <div class="label">{{this.parserAName}}</div>
-                                <img src="{{this.imageAPath}}" alt="Result A" onerror="this.style.display='none'">
-                            </div>
-                            <div class="image-comparison-card">
-                                <div class="label">{{this.parserBName}}</div>
-                                <img src="{{this.imageBPath}}" alt="Result B" onerror="this.style.display='none'">
-                            </div>
-                            <div class="image-comparison-card">
-                                <div class="label">Difference ({{this.diffPercentage}})</div>
-                                <img src="{{this.diffImagePath}}" alt="Diff" onerror="this.style.display='none'">
-                            </div>
-                        </div>
-                        <div class="onion-slider-container">
-                            <div class="label">Onion Skin Comparison</div>
-                            <div class="onion-slider-wrapper">
-                                <img class="image-a" src="{{this.imageAPath}}" alt="Result A">
-                                <img class="image-b" src="{{this.imageBPath}}" alt="Result B" id="{{this.onionId}}">
-                            </div>
-                            <div class="onion-slider-controls">
-                                <span class="slider-label">{{this.parserAName}}</span>
-                                <input type="range" min="0" max="100" value="50"
-                                    oninput="document.getElementById('{{this.onionId}}').style.opacity = this.value / 100">
-                                <span class="slider-label">{{this.parserBName}}</span>
-                            </div>
-                        </div>
-                    </div>
-                {{/each}}
             </div>
         {{/if}}
     </div>

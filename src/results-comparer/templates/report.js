@@ -4,34 +4,7 @@ Chart.defaults.borderColor = '#d0d7de';
 
 // Initialize charts with data from window.reportData
 (function () {
-    const { matchRateData, processingTimeData, vertexData, uniqueVertexData, triangleData } = window.reportData;
-
-    // Match Rate Chart
-    new Chart(document.getElementById('matchRateChart'), {
-        type: 'bar',
-        data: {
-            labels: matchRateData.labels,
-            datasets: [{
-                data: matchRateData.values,
-                backgroundColor: matchRateData.values.map(v => v === 100 ? '#3fb950' : v >= 50 ? '#d29922' : '#f85149'),
-                borderRadius: 4,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { callback: v => v + '%' }
-                }
-            }
-        }
-    });
+    const { processingTimeData, vertexData, uniqueVertexData, triangleData } = window.reportData;
 
     // Processing Time Chart
     const files = [...new Set(processingTimeData.map(d => d.file))];
@@ -157,20 +130,25 @@ Chart.defaults.borderColor = '#d0d7de';
             for (const classData of vertexByClassData.withGeometry) {
                 const safeId = classData.ifcClass.replace(/[^a-zA-Z0-9]/g, '_');
                 const chartWrapper = document.createElement('div');
-                chartWrapper.className = 'class-charts-wrapper';
+                chartWrapper.className = 'collapsible-section class-collapsible';
                 chartWrapper.innerHTML = `
-                    <h3>${classData.ifcClass}</h3>
-                    <div class="charts-grid">
-                        <div class="chart-card">
-                            <h4>Total Vertices</h4>
-                            <div class="chart-container">
-                                <canvas id="vertex-${safeId}"></canvas>
+                    <div class="collapsible-header">
+                        <h3>${classData.ifcClass}</h3>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="charts-grid">
+                            <div class="chart-card">
+                                <h4>Total Vertices</h4>
+                                <div class="chart-container">
+                                    <canvas id="vertex-${safeId}"></canvas>
+                                </div>
                             </div>
-                        </div>
-                        <div class="chart-card">
-                            <h4>Unique Vertices</h4>
-                            <div class="chart-container">
-                                <canvas id="unique-${safeId}"></canvas>
+                            <div class="chart-card">
+                                <h4>Unique Vertices</h4>
+                                <div class="chart-container">
+                                    <canvas id="unique-${safeId}"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -223,6 +201,14 @@ Chart.defaults.borderColor = '#d0d7de';
         header.addEventListener('click', () => {
             const details = header.nextElementSibling;
             details.classList.toggle('open');
+        });
+    });
+
+    // Toggle inner collapsible sections (Matrix Comparison)
+    document.querySelectorAll('.collapsible-header').forEach(header => {
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            header.parentElement.classList.toggle('open');
         });
     });
 

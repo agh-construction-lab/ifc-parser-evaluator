@@ -177,19 +177,6 @@ export class ReportGeneratorService {
     const cssContent = this.loadRawFile("report.css");
     const jsContent = this.loadRawFile("report.js");
 
-    // Prepare chart data
-    const matchRateData = {
-      labels: ["Metadata", "Summary", "Tree", "Geometry", "Matrix", "Images"],
-      values: [
-        summary.overallMetrics.metadataMatchRate * 100,
-        summary.overallMetrics.summaryMatchRate * 100,
-        summary.overallMetrics.treeMatchRate * 100,
-        summary.overallMetrics.geometryMatchRate * 100,
-        summary.overallMetrics.matrixMatchRate * 100,
-        summary.overallMetrics.imageMatchRate * 100,
-      ],
-    };
-
     // Processing time data
     const processingTimeData = comparisons.flatMap((c) =>
       c.parsers.map((p) => ({
@@ -225,7 +212,6 @@ export class ReportGeneratorService {
 
     // Build report data for charts
     const reportData = JSON.stringify({
-      matchRateData,
       processingTimeData,
       vertexData,
       uniqueVertexData,
@@ -257,21 +243,21 @@ export class ReportGeneratorService {
       ),
       metadataMatchRate: (
         summary.overallMetrics.metadataMatchRate * 100
-      ).toFixed(0),
+      ).toFixed(2),
       summaryMatchColor: getMatchColor(summary.overallMetrics.summaryMatchRate),
       summaryMatchRate: (summary.overallMetrics.summaryMatchRate * 100).toFixed(
-        0,
+        2,
       ),
       geometryMatchColor: getMatchColor(
         summary.overallMetrics.geometryMatchRate,
       ),
       geometryMatchRate: (
         summary.overallMetrics.geometryMatchRate * 100
-      ).toFixed(0),
+      ).toFixed(2),
       matrixMatchColor: getMatchColor(summary.overallMetrics.matrixMatchRate),
-      matrixMatchRate: (summary.overallMetrics.matrixMatchRate * 100).toFixed(0),
+      matrixMatchRate: (summary.overallMetrics.matrixMatchRate * 100).toFixed(2),
       imageMatchColor: getMatchColor(summary.overallMetrics.imageMatchRate),
-      imageMatchRate: (summary.overallMetrics.imageMatchRate * 100).toFixed(0),
+      imageMatchRate: (summary.overallMetrics.imageMatchRate * 100).toFixed(2),
       averagePixelDiff: summary.overallMetrics.averagePixelDiff.toFixed(3),
       comparisons: fileComparisonsHtml,
     });
@@ -352,6 +338,10 @@ export class ReportGeneratorService {
         ? "match"
         : "mismatch",
       schemaMatchIcon: comparison.metadata.schemaVersionMatch ? "✓" : "✗",
+      metadata: comparison.metadata,
+      schemaVersionMatchClass: comparison.metadata.schemaVersionMatch
+        ? "yes"
+        : "no",
       summaryMatchClass: summaryMatch ? "match" : "mismatch",
       summaryMatchIcon: summaryMatch ? "✓" : "✗",
       geometryMatchClass: geometryMatch ? "match" : "mismatch",
