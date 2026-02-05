@@ -74,6 +74,12 @@ h1 {
     font-weight: 600;
 }
 
+.summary-card .sub-value {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
 .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));

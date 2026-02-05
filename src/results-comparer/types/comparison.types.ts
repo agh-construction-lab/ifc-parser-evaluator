@@ -100,6 +100,7 @@ export interface GeometryComparison {
   totalTriangleCounts: Array<number>;
   uniqueVertexCountMatch: boolean;
   uniqueVertexCounts: Array<number>;
+  matrixMatch: boolean;
   entities: Array<GeometryEntityComparison>;
 }
 
@@ -110,6 +111,7 @@ export interface GeometryEntityComparison {
   triangleCounts: Array<number>;
   vertexMatch: boolean;
   triangleMatch: boolean;
+  matrixMatch: boolean;
 }
 
 export interface ImageComparison {
@@ -141,6 +143,8 @@ export interface ReportSummary {
     summaryMatchRate: number;
     treeMatchRate: number;
     geometryMatchRate: number;
+    matrixMatchRate: number;
     imageMatchRate: number;
+    averagePixelDiff: number;
   };
 }

@@ -237,6 +237,7 @@ export class ComparisonService {
     const totalVertexCounts = outputs.map(() => 0);
     const totalTriangleCounts = outputs.map(() => 0);
     const uniqueVertexCounts = outputs.map(() => 0);
+    let allMatricesMatch = true;
 
     const entities: Array<GeometryEntityComparison> = [];
 
@@ -267,6 +268,11 @@ export class ComparisonService {
 
       const ifcClass = geometries.find((g) => g)?.ifcClass || "Unknown";
 
+      // Compare matrices
+      const matrices = geometries.map((g) => g?.matrix);
+      const matrixMatch = this.compareMatrices(matrices);
+      if (!matrixMatch) allMatricesMatch = false;
+
       entities.push({
         globalId,
         ifcClass,
@@ -274,6 +280,7 @@ export class ComparisonService {
         triangleCounts,
         vertexMatch: vertexCounts.every((c) => c === vertexCounts[0]),
         triangleMatch: triangleCounts.every((c) => c === triangleCounts[0]),
+        matrixMatch,
       });
     }
 
@@ -292,8 +299,30 @@ export class ComparisonService {
         (c) => c === uniqueVertexCounts[0],
       ),
       uniqueVertexCounts,
+      matrixMatch: allMatricesMatch,
       entities,
     };
+  }
+
+  /**
+   * Compare transformation matrices across parsers
+   */
+  private compareMatrices(
+    matrices: Array<Array<number> | undefined>,
+  ): boolean {
+    const validMatrices = matrices.filter((m) => m !== undefined);
+    if (validMatrices.length === 0) return true;
+    if (validMatrices.length !== matrices.length) return false;
+
+    const first = validMatrices[0];
+    return validMatrices.every(
+      (m) =>
+        m.length === first.length &&
+        m.every(
+          (val, i) =>
+            Math.abs(val - first[i]) < Math.pow(10, -NUMERIC_PRECISION),
+        ),
+    );
   }
 
   /**

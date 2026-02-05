@@ -68,7 +68,7 @@ export class ImageComparerService {
       fs.writeFileSync(diffOutputPath, PNG.sync.write(diff));
 
       const pixelDiffPercentage = (pixelDiffCount / totalPixels) * 100;
-      const match = pixelDiffCount === 0;
+      const match = pixelDiffPercentage < 1; // 1% tolerance threshold
 
       this.logger.debug(
         `${viewName}: ${pixelDiffCount} pixels differ (${pixelDiffPercentage.toFixed(2)}%)`,

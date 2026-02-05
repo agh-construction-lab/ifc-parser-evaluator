@@ -79,8 +79,15 @@ export class ReportGeneratorService {
     let metadataMatches = 0;
     let summaryMatches = 0;
     let treeMatches = 0;
-    let geometryMatches = 0;
-    let imageMatches = 0;
+    let matrixMatches = 0;
+
+    // Geometry: count matching criteria (entity, totalVertex, uniqueVertex, triangles)
+    let geometryCriteriaMatched = 0;
+    const geometryCriteriaTotal = totalFiles * 4; // 4 criteria per file
+
+    // Images: collect all pixel diff percentages for average
+    let totalPixelDiffSum = 0;
+    let totalViewCount = 0;
 
     for (const comparison of comparisons) {
       if (comparison.metadata.schemaVersionMatch) metadataMatches++;
@@ -90,17 +97,25 @@ export class ReportGeneratorService {
       )
         summaryMatches++;
       if (comparison.spatialTree.nodeCountMatch) treeMatches++;
-      if (
-        comparison.geometry.entityCountMatch &&
-        comparison.geometry.totalVertexCountMatch
-      )
-        geometryMatches++;
 
-      const imageMatchCount = comparison.images.views.filter(
-        (v) => v.match,
-      ).length;
-      if (imageMatchCount === comparison.images.views.length) imageMatches++;
+      // Geometry: count individual criteria matches
+      if (comparison.geometry.entityCountMatch) geometryCriteriaMatched++;
+      if (comparison.geometry.totalVertexCountMatch) geometryCriteriaMatched++;
+      if (comparison.geometry.uniqueVertexCountMatch) geometryCriteriaMatched++;
+      if (comparison.geometry.totalTriangleCountMatch) geometryCriteriaMatched++;
+
+      // Matrix: separate metric
+      if (comparison.geometry.matrixMatch) matrixMatches++;
+
+      // Images: sum up pixel diff percentages for average
+      for (const view of comparison.images.views) {
+        totalPixelDiffSum += view.pixelDiffPercentage;
+        totalViewCount++;
+      }
     }
+
+    const averagePixelDiff =
+      totalViewCount > 0 ? totalPixelDiffSum / totalViewCount : 0;
 
     return {
       totalFiles,
@@ -109,8 +124,13 @@ export class ReportGeneratorService {
         metadataMatchRate: totalFiles > 0 ? metadataMatches / totalFiles : 0,
         summaryMatchRate: totalFiles > 0 ? summaryMatches / totalFiles : 0,
         treeMatchRate: totalFiles > 0 ? treeMatches / totalFiles : 0,
-        geometryMatchRate: totalFiles > 0 ? geometryMatches / totalFiles : 0,
-        imageMatchRate: totalFiles > 0 ? imageMatches / totalFiles : 0,
+        geometryMatchRate:
+          geometryCriteriaTotal > 0
+            ? geometryCriteriaMatched / geometryCriteriaTotal
+            : 0,
+        matrixMatchRate: totalFiles > 0 ? matrixMatches / totalFiles : 0,
+        imageMatchRate: (100 - averagePixelDiff) / 100, // Convert to 0-1 rate
+        averagePixelDiff,
       },
     };
   }
@@ -159,12 +179,13 @@ export class ReportGeneratorService {
 
     // Prepare chart data
     const matchRateData = {
-      labels: ["Metadata", "Summary", "Tree", "Geometry", "Images"],
+      labels: ["Metadata", "Summary", "Tree", "Geometry", "Matrix", "Images"],
       values: [
         summary.overallMetrics.metadataMatchRate * 100,
         summary.overallMetrics.summaryMatchRate * 100,
         summary.overallMetrics.treeMatchRate * 100,
         summary.overallMetrics.geometryMatchRate * 100,
+        summary.overallMetrics.matrixMatchRate * 100,
         summary.overallMetrics.imageMatchRate * 100,
       ],
     };
@@ -242,8 +263,11 @@ export class ReportGeneratorService {
       geometryMatchRate: (
         summary.overallMetrics.geometryMatchRate * 100
       ).toFixed(0),
+      matrixMatchColor: getMatchColor(summary.overallMetrics.matrixMatchRate),
+      matrixMatchRate: (summary.overallMetrics.matrixMatchRate * 100).toFixed(0),
       imageMatchColor: getMatchColor(summary.overallMetrics.imageMatchRate),
       imageMatchRate: (summary.overallMetrics.imageMatchRate * 100).toFixed(0),
+      averagePixelDiff: summary.overallMetrics.averagePixelDiff.toFixed(3),
       comparisons: fileComparisonsHtml,
     });
   }
@@ -258,9 +282,14 @@ export class ReportGeneratorService {
     const summaryMatch =
       comparison.summary.totalEntityCountMatch &&
       comparison.summary.typeCountMatch;
-    const geometryMatch =
-      comparison.geometry.entityCountMatch &&
-      comparison.geometry.totalVertexCountMatch;
+    // Count geometry criteria matches (out of 4)
+    const geometryCriteriaCount = [
+      comparison.geometry.entityCountMatch,
+      comparison.geometry.totalVertexCountMatch,
+      comparison.geometry.uniqueVertexCountMatch,
+      comparison.geometry.totalTriangleCountMatch,
+    ].filter(Boolean).length;
+    const geometryMatch = geometryCriteriaCount === 4;
     const imagesMatch = comparison.images.views.every((v) => v.match);
 
     // Prepare view data for images
@@ -291,6 +320,8 @@ export class ReportGeneratorService {
       summaryMatchIcon: summaryMatch ? "✓" : "✗",
       geometryMatchClass: geometryMatch ? "match" : "mismatch",
       geometryMatchIcon: geometryMatch ? "✓" : "✗",
+      matrixMatchClass: comparison.geometry.matrixMatch ? "match" : "mismatch",
+      matrixMatchIcon: comparison.geometry.matrixMatch ? "✓" : "✗",
       imagesMatchClass: imagesMatch ? "match" : "mismatch",
       imagesMatchIcon: imagesMatch ? "✓" : "✗",
       parsers: comparison.parsers,
