@@ -25,6 +25,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "express": "^5.2.1",
+    "handlebars": "^4.7.8",
     "nest-commander": "^3.20.1",
     "pixelmatch": "^7.1.0",
     "pngjs": "^7.0.0",

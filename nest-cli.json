@@ -8,6 +8,10 @@
       {
         "include": "geometry-renderer/public/**/*.html",
         "outDir": "dist"
+      },
+      {
+        "include": "results-comparer/templates/**/*",
+        "outDir": "dist"
       }
     ]
   }

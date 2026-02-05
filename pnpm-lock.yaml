@@ -20,6 +20,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      handlebars:
+        specifier: ^4.7.8
+        version: 4.7.8
       nest-commander:
         specifier: ^3.20.1
         version: 3.20.1(@nestjs/common@11.1.12(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.12(@nestjs/common@11.1.12(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.12)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@types/inquirer@8.2.12)(@types/node@22.19.7)(typescript@5.9.3)

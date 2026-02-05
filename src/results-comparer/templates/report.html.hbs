@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFC Parser Comparison Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+    {{{styles}}}
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🏗️ IFC Parser Comparison Report</h1>
+            <p class="meta">
+                Generated: {{generatedAt}} |
+                Parsers: {{parsersCompared}} |
+                Files: {{totalFiles}}
+            </p>
+        </header>
+
+        <section class="summary-grid">
+            <div class="summary-card">
+                <h3>Files Compared</h3>
+                <div class="value">{{totalFiles}}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Metadata Match</h3>
+                <div class="value" style="color: {{metadataMatchColor}}">
+                    {{metadataMatchRate}}%
+                </div>
+            </div>
+            <div class="summary-card">
+                <h3>Summary Match</h3>
+                <div class="value" style="color: {{summaryMatchColor}}">
+                    {{summaryMatchRate}}%
+                </div>
+            </div>
+            <div class="summary-card">
+                <h3>Geometry Match</h3>
+                <div class="value" style="color: {{geometryMatchColor}}">
+                    {{geometryMatchRate}}%
+                </div>
+            </div>
+            <div class="summary-card">
+                <h3>Image Match</h3>
+                <div class="value" style="color: {{imageMatchColor}}">
+                    {{imageMatchRate}}%
+                </div>
+            </div>
+        </section>
+
+        <section class="charts-grid">
+            <div class="chart-card">
+                <h2>Match Rate by Category</h2>
+                <div class="chart-container">
+                    <canvas id="matchRateChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>Processing Time (ms)</h2>
+                <div class="chart-container">
+                    <canvas id="processingTimeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>Vertex Count Comparison</h2>
+                <div class="chart-container">
+                    <canvas id="vertexChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>Triangle Count Comparison</h2>
+                <div class="chart-container">
+                    <canvas id="triangleChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="comparison-section">
+            <h2>Detailed Comparisons</h2>
+            {{{comparisons}}}
+        </section>
+
+        <footer>
+            <p>IFC Parser Evaluator | Generated from: {{outputDirectory}}</p>
+        </footer>
+    </div>
+
+    <script>
+        window.reportData = {{{reportData}}};
+    </script>
+    <script>
+        {{{scripts}}}
+    </script>
+</body>
+
+</html>
