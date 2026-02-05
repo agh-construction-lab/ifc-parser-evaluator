@@ -108,8 +108,10 @@ export interface GeometryEntityComparison {
   globalId: string;
   ifcClass: string;
   vertexCounts: Array<number>;
+  uniqueVertexCounts: Array<number>;
   triangleCounts: Array<number>;
   vertexMatch: boolean;
+  uniqueVertexMatch: boolean;
   triangleMatch: boolean;
   matrixMatch: boolean;
   matrices: Array<Array<number> | undefined>;

@@ -135,6 +135,89 @@ Chart.defaults.borderColor = '#d0d7de';
         }
     });
 
+    // Geometry Charts: By IFC Class
+    const { vertexByClassData } = window.reportData;
+
+    if (vertexByClassData) {
+        // List classes without geometry
+        if (vertexByClassData.withoutGeometry && vertexByClassData.withoutGeometry.length > 0) {
+            const container = document.getElementById('classesWithoutGeometry');
+            container.innerHTML = `
+                <div class="no-geometry-notice">
+                    <h4>Classes without geometry:</h4>
+                    <p>${vertexByClassData.withoutGeometry.map(c => c.ifcClass).join(', ')}</p>
+                </div>
+            `;
+        }
+
+        // Create charts for classes with geometry
+        const chartsContainer = document.getElementById('classByClassCharts');
+
+        if (vertexByClassData.withGeometry) {
+            for (const classData of vertexByClassData.withGeometry) {
+                const safeId = classData.ifcClass.replace(/[^a-zA-Z0-9]/g, '_');
+                const chartWrapper = document.createElement('div');
+                chartWrapper.className = 'class-charts-wrapper';
+                chartWrapper.innerHTML = `
+                    <h3>${classData.ifcClass}</h3>
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h4>Total Vertices</h4>
+                            <div class="chart-container">
+                                <canvas id="vertex-${safeId}"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>Unique Vertices</h4>
+                            <div class="chart-container">
+                                <canvas id="unique-${safeId}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                chartsContainer.appendChild(chartWrapper);
+
+                // Total vertices chart
+                new Chart(document.getElementById(`vertex-${safeId}`), {
+                    type: 'bar',
+                    data: {
+                        labels: classData.parsers,
+                        datasets: [{
+                            data: classData.vertexCounts,
+                            backgroundColor: ['#0969da', '#8250df'],
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                // Unique vertices chart
+                new Chart(document.getElementById(`unique-${safeId}`), {
+                    type: 'bar',
+                    data: {
+                        labels: classData.parsers,
+                        datasets: [{
+                            data: classData.uniqueVertexCounts,
+                            backgroundColor: ['#0969da', '#8250df'],
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+    }
+
     // Toggle file details
     document.querySelectorAll('.file-header').forEach(header => {
         header.addEventListener('click', () => {

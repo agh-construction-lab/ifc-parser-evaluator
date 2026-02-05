@@ -40,6 +40,13 @@ header {
 h1 {
     font-size: 2rem;
     font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+header .file-name {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--accent-blue);
     margin-bottom: 0.5rem;
 }
 
@@ -547,6 +554,40 @@ th {
 
 .file-links a:hover {
     text-decoration: underline;
+}
+
+/* Classes by IFC Class */
+.no-geometry-notice {
+    background: var(--bg-tertiary);
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.no-geometry-notice h4 {
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.no-geometry-notice p {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.class-charts-wrapper {
+    margin-bottom: 2rem;
+}
+
+.class-charts-wrapper h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--accent-blue);
+}
+
+.class-charts-wrapper h4 {
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
 }
 
 footer {

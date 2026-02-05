@@ -220,6 +220,9 @@ export class ReportGeneratorService {
       parsers: c.parsers.map((p) => p.parserName),
     }));
 
+    // Group vertices by IFC class
+    const vertexByClassData = this.groupVerticesByClass(comparisons);
+
     // Build report data for charts
     const reportData = JSON.stringify({
       matchRateData,
@@ -227,6 +230,7 @@ export class ReportGeneratorService {
       vertexData,
       uniqueVertexData,
       triangleData,
+      vertexByClassData,
     });
 
     // Helper for match color
@@ -405,5 +409,51 @@ export class ReportGeneratorService {
 
     fs.writeFileSync(outputPath, html);
     this.logger.log(`Index HTML saved: ${outputPath}`);
+  }
+
+  /**
+   * Group vertex counts by IFC class for per-class charts
+   */
+  private groupVerticesByClass(comparisons: Array<ComparisonResult>) {
+    const classMap: Record<
+      string,
+      {
+        ifcClass: string;
+        vertexCounts: number[];
+        uniqueVertexCounts: number[];
+        parsers: string[];
+      }
+    > = {};
+
+    for (const comparison of comparisons) {
+      const parsers = comparison.parsers.map((p) => p.parserName);
+
+      for (const entity of comparison.geometry.entities) {
+        if (!classMap[entity.ifcClass]) {
+          classMap[entity.ifcClass] = {
+            ifcClass: entity.ifcClass,
+            vertexCounts: parsers.map(() => 0),
+            uniqueVertexCounts: parsers.map(() => 0),
+            parsers,
+          };
+        }
+        entity.vertexCounts.forEach((count, i) => {
+          classMap[entity.ifcClass].vertexCounts[i] += count;
+        });
+        entity.uniqueVertexCounts.forEach((count, i) => {
+          classMap[entity.ifcClass].uniqueVertexCounts[i] += count;
+        });
+      }
+    }
+
+    // Separate classes with and without geometry
+    const withGeometry = Object.values(classMap).filter((c) =>
+      c.vertexCounts.some((v) => v > 0),
+    );
+    const withoutGeometry = Object.values(classMap).filter((c) =>
+      c.vertexCounts.every((v) => v === 0),
+    );
+
+    return { withGeometry, withoutGeometry };
   }
 }

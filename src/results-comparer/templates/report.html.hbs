@@ -14,8 +14,9 @@
 <body>
     <div class="container">
         <header>
-            <h1>🏗️ IFC Parser Comparison Report: 📄 {{fileName}}</h1>
+            <h1>🏗️ IFC Parser Comparison Report</h1>
             <p class="meta">
+                File: 📄 {{fileName}} |
                 Generated: {{generatedAt}} |
                 Parsers: {{parsersCompared}}
             </p>
@@ -99,12 +100,23 @@
             </div>
         </div>
 
+        <div class="collapsible-section">
+            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+                <h2>Geometry Charts: By IFC Class</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div id="classesWithoutGeometry"></div>
+                <div id="classByClassCharts"></div>
+            </div>
+        </div>
+
         <div class="comparisons-container">
             {{{comparisons}}}
         </div>
 
         <footer>
-            <p>IFC Parser Evaluator | Generated from: {{outputDirectory}}</p>
+            <p>stryczek.pl</p>
         </footer>
     </div>
 

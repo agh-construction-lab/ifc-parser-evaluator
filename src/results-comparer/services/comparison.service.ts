@@ -259,11 +259,17 @@ export class ComparisonService {
         totalTriangleCounts[i] += c;
       });
 
-      // Count unique vertices
-      geometries.forEach((g, i) => {
+      // Count unique vertices per entity
+      const entityUniqueVertexCounts = geometries.map((g) => {
         if (g?.mesh?.positions) {
-          uniqueVertexCounts[i] += this.countUniqueVertices(g.mesh.positions);
+          return this.countUniqueVertices(g.mesh.positions);
         }
+        return 0;
+      });
+
+      // Update total unique vertex counts
+      entityUniqueVertexCounts.forEach((count, i) => {
+        uniqueVertexCounts[i] += count;
       });
 
       const ifcClass = geometries.find((g) => g)?.ifcClass || "Unknown";
@@ -277,8 +283,12 @@ export class ComparisonService {
         globalId,
         ifcClass,
         vertexCounts,
+        uniqueVertexCounts: entityUniqueVertexCounts,
         triangleCounts,
         vertexMatch: vertexCounts.every((c) => c === vertexCounts[0]),
+        uniqueVertexMatch: entityUniqueVertexCounts.every(
+          (c) => c === entityUniqueVertexCounts[0],
+        ),
         triangleMatch: triangleCounts.every((c) => c === triangleCounts[0]),
         matrixMatch,
         matrices,
