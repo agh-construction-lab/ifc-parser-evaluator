@@ -1,6 +1,6 @@
 // Chart.js configuration
-Chart.defaults.color = '#8b949e';
-Chart.defaults.borderColor = '#30363d';
+Chart.defaults.color = '#656d76';
+Chart.defaults.borderColor = '#d0d7de';
 
 // Initialize charts with data from window.reportData
 (function () {
