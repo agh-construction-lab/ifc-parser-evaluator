@@ -246,6 +246,7 @@ export class ReportGeneratorService {
       generatedAt: new Date(generatedAt).toLocaleString(),
       parsersCompared: summary.parsersCompared.join(", "),
       totalFiles: summary.totalFiles,
+      fileName: comparisons[0]?.ifcFileName || "Unknown",
       outputDirectory,
       metadataMatchColor: getMatchColor(
         summary.overallMetrics.metadataMatchRate,
@@ -293,22 +294,37 @@ export class ReportGeneratorService {
     const imagesMatch = comparison.images.views.every((v) => v.match);
 
     // Prepare view data for images
-    const views = comparison.images.views.map((v, i) => ({
-      viewId: `${v.viewName}-${comparison.ifcFileName}`,
-      viewName: v.viewName,
-      matchClass: v.match ? "yes" : "no",
-      parserAName: comparison.parsers[0]?.parserName || "Parser A",
-      parserBName: comparison.parsers[1]?.parserName || "Parser B",
-      imageAPath: v.imagePaths[0] || "",
-      imageBPath: v.imagePaths[1] || "",
-      diffPercentage:
-        v.pixelDiffPercentage >= 0
-          ? v.pixelDiffPercentage.toFixed(2) + "%"
-          : "N/A",
-      diffImagePath: v.diffImagePath || "",
-      onionId: `onion-${v.viewName}-${comparison.ifcFileName}`,
-      isFirst: i === 0,
-    }));
+    // Convert absolute paths to relative paths (relative to report location in _comparison/{fileName}/)
+    const views = comparison.images.views.map((v, i) => {
+      // Parser images are at ../../{parser}/{fileName}/{view}.png
+      // Diff images are in the same folder as the report
+      const imageAPath = v.imagePaths[0]
+        ? `../../${comparison.parsers[0]?.parserName}/${comparison.ifcFileName}/${path.basename(v.imagePaths[0])}`
+        : "";
+      const imageBPath = v.imagePaths[1]
+        ? `../../${comparison.parsers[1]?.parserName}/${comparison.ifcFileName}/${path.basename(v.imagePaths[1])}`
+        : "";
+      const diffImagePath = v.diffImagePath
+        ? path.basename(v.diffImagePath)
+        : "";
+
+      return {
+        viewId: `${v.viewName}-${comparison.ifcFileName}`,
+        viewName: v.viewName,
+        matchClass: v.match ? "yes" : "no",
+        parserAName: comparison.parsers[0]?.parserName || "Parser A",
+        parserBName: comparison.parsers[1]?.parserName || "Parser B",
+        imageAPath,
+        imageBPath,
+        diffPercentage:
+          v.pixelDiffPercentage >= 0
+            ? v.pixelDiffPercentage.toFixed(2) + "%"
+            : "N/A",
+        diffImagePath,
+        onionId: `onion-${v.viewName}-${comparison.ifcFileName}`,
+        isFirst: i === 0,
+      };
+    });
 
     return template({
       ifcFileName: comparison.ifcFileName,
@@ -363,5 +379,31 @@ export class ReportGeneratorService {
         })),
       })),
     });
+  }
+
+  /**
+   * Generate index.html with links to all file reports
+   */
+  generateIndexHtml(
+    reportLinks: Array<{ name: string; path: string }>,
+    outputPath: string,
+  ): void {
+    const template = this.loadTemplate("index.html.hbs");
+    const cssContent = this.loadRawFile("report.css");
+
+    const html = template({
+      styles: cssContent,
+      generatedAt: new Date().toLocaleString(),
+      totalFiles: reportLinks.length,
+      reports: reportLinks,
+    });
+
+    const dir = path.dirname(outputPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(outputPath, html);
+    this.logger.log(`Index HTML saved: ${outputPath}`);
   }
 }

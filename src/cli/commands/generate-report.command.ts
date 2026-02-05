@@ -23,20 +23,39 @@ class GenerateReportCommand extends CommandRunner {
   async run(args: Array<string>, props: Props): Promise<void> {
     const { outputDir, comparisons } = props;
 
-    this.logger.log("Generating report...");
+    this.logger.log("Generating reports...");
 
-    const report = this.reportGeneratorService.generateReport(
-      comparisons,
-      outputDir,
-    );
+    const comparisonDir = path.join(outputDir, "_comparison");
+    const reportLinks: Array<{ name: string; path: string }> = [];
 
-    const reportJsonPath = path.join(outputDir, "comparison-report.json");
-    const reportHtmlPath = path.join(outputDir, "comparison-report.html");
+    // Generate per-file reports
+    for (const comparison of comparisons) {
+      const fileOutputDir = path.join(comparisonDir, comparison.ifcFileName);
 
-    this.reportGeneratorService.saveReportJson(report, reportJsonPath);
-    this.reportGeneratorService.generateHtmlReport(report, reportHtmlPath);
+      const report = this.reportGeneratorService.generateReport(
+        [comparison],
+        fileOutputDir,
+      );
 
-    this.logger.log(`Report saved: ${reportHtmlPath}`);
+      const reportJsonPath = path.join(fileOutputDir, "comparison-report.json");
+      const reportHtmlPath = path.join(fileOutputDir, "comparison-report.html");
+
+      this.reportGeneratorService.saveReportJson(report, reportJsonPath);
+      this.reportGeneratorService.generateHtmlReport(report, reportHtmlPath);
+
+      reportLinks.push({
+        name: comparison.ifcFileName,
+        path: `_comparison/${comparison.ifcFileName}/comparison-report.html`,
+      });
+
+      this.logger.log(`Report saved: ${reportHtmlPath}`);
+    }
+
+    // Generate index.html with links to all reports
+    const indexPath = path.join(outputDir, "index.html");
+    this.reportGeneratorService.generateIndexHtml(reportLinks, indexPath);
+    this.logger.log(`Index saved: ${indexPath}`);
+
     this.logger.log("Report generation completed!");
 
     return Promise.resolve();

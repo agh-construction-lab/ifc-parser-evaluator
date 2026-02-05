@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFC Parser Comparison Reports</title>
+    <style>
+    {{{styles}}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏗️ IFC Parser Comparison Reports</h1>
+            <p class="meta">
+                Generated: {{generatedAt}} |
+                Files: {{totalFiles}}
+            </p>
+        </header>
+
+        <section class="report-list">
+            <h2>Available Reports</h2>
+            <ul class="file-links">
+                {{#each reports}}
+                    <li>
+                        <a href="{{this.path}}">📄 {{this.name}}</a>
+                    </li>
+                {{/each}}
+            </ul>
+        </section>
+
+        <footer>
+            <p>IFC Parser Evaluator</p>
+        </footer>
+    </div>
+</body>
+</html>

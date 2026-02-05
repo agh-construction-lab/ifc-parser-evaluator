@@ -80,6 +80,65 @@ h1 {
     margin-top: 0.25rem;
 }
 
+/* Collapsible Sections */
+.collapsible-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.collapsible-header:hover {
+    background: var(--bg-tertiary);
+}
+
+.collapsible-header h2 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.toggle-text {
+    color: var(--accent-blue);
+    font-size: 0.875rem;
+}
+
+.toggle-icon {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    transition: transform 0.2s;
+}
+
+.collapsible-section.open .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    display: none;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.collapsible-section.open .collapsible-content {
+    display: block;
+}
+
+.toggle-label {
+    color: var(--accent-blue);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
 .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -449,6 +508,44 @@ th {
 
 .onion-slider-controls .slider-label:last-child {
     text-align: right;
+}
+
+/* Report List (Index Page) */
+.report-list {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.report-list h2 {
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.file-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.file-links li {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.file-links li:last-child {
+    border-bottom: none;
+}
+
+.file-links a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.file-links a:hover {
+    text-decoration: underline;
 }
 
 footer {

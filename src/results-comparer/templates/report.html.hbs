@@ -14,19 +14,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>🏗️ IFC Parser Comparison Report</h1>
+            <h1>🏗️ IFC Parser Comparison Report: 📄 {{fileName}}</h1>
             <p class="meta">
                 Generated: {{generatedAt}} |
-                Parsers: {{parsersCompared}} |
-                Files: {{totalFiles}}
+                Parsers: {{parsersCompared}}
             </p>
         </header>
 
         <section class="summary-grid">
-            <div class="summary-card">
-                <h3>Files Compared</h3>
-                <div class="value">{{totalFiles}}</div>
-            </div>
             <div class="summary-card">
                 <h3>Metadata Match</h3>
                 <div class="value" style="color: {{metadataMatchColor}}">
@@ -73,30 +68,40 @@
                     <canvas id="processingTimeChart"></canvas>
                 </div>
             </div>
-            <div class="chart-card">
-                <h2>Total Vertex Count</h2>
-                <div class="chart-container">
-                    <canvas id="vertexChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h2>Unique Vertex Count</h2>
-                <div class="chart-container">
-                    <canvas id="uniqueVertexChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h2>Triangle Count</h2>
-                <div class="chart-container">
-                    <canvas id="triangleChart"></canvas>
-                </div>
-            </div>
         </section>
 
-        <section class="comparison-section">
-            <h2>Detailed Comparisons</h2>
+        <div class="collapsible-section">
+            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+                <h2>Geometry Charts: General</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h2>Total Vertex Count</h2>
+                        <div class="chart-container">
+                            <canvas id="vertexChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Unique Vertex Count</h2>
+                        <div class="chart-container">
+                            <canvas id="uniqueVertexChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Triangle Count</h2>
+                        <div class="chart-container">
+                            <canvas id="triangleChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="comparisons-container">
             {{{comparisons}}}
-        </section>
+        </div>
 
         <footer>
             <p>IFC Parser Evaluator | Generated from: {{outputDirectory}}</p>

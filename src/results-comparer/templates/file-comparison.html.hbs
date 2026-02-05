@@ -1,6 +1,6 @@
-<div class="file-comparison">
-    <div class="file-header">
-        <span class="file-name">📄 {{ifcFileName}}</span>
+<div class="file-comparison collapsible-section">
+    <div class="file-header collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+        <h2>Detailed Comparisons</h2>
         <div class="file-stats">
             <span class="stat-badge {{schemaMatchClass}}">
                 Schema {{schemaMatchIcon}}
