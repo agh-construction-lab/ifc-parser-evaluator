@@ -112,6 +112,7 @@ export interface GeometryEntityComparison {
   vertexMatch: boolean;
   triangleMatch: boolean;
   matrixMatch: boolean;
+  matrices: Array<Array<number> | undefined>;
 }
 
 export interface ImageComparison {

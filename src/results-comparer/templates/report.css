@@ -212,6 +212,63 @@ th {
     background: var(--accent-red);
 }
 
+/* Matrix Comparison Section */
+.matrix-entity {
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.matrix-entity-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.matrix-entity-header .entity-id {
+    font-family: monospace;
+    font-size: 0.875rem;
+    color: var(--accent-blue);
+}
+
+.matrix-entity-header .entity-class {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.matrix-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.matrix-card {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    padding: 0.75rem;
+}
+
+.matrix-card .label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.matrix-table {
+    width: 100%;
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.matrix-table td {
+    text-align: right;
+    padding: 0.25rem 0.5rem;
+    border: none;
+    color: var(--text-primary);
+}
+
 .images-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

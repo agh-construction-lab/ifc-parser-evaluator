@@ -281,6 +281,7 @@ export class ComparisonService {
         vertexMatch: vertexCounts.every((c) => c === vertexCounts[0]),
         triangleMatch: triangleCounts.every((c) => c === triangleCounts[0]),
         matrixMatch,
+        matrices,
       });
     }
 

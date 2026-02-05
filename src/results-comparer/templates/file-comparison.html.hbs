@@ -112,6 +112,35 @@
             </tbody>
         </table>
 
+        {{#if hasMatrixData}}
+            <h4 style="margin-top: 1rem;">Matrix Comparison</h4>
+            {{#each matrixEntities}}
+                <div class="matrix-entity">
+                    <div class="matrix-entity-header">
+                        <span class="entity-id">{{this.globalId}}</span>
+                        <span class="entity-class">({{this.ifcClass}})</span>
+                        <span class="match-icon {{this.matchClass}}"></span>
+                    </div>
+                    <div class="matrix-grid">
+                        {{#each this.parserMatrices}}
+                            <div class="matrix-card">
+                                <div class="label">{{this.parserName}}</div>
+                                <table class="matrix-table">
+                                    {{#each this.rows}}
+                                        <tr>
+                                            {{#each this}}
+                                                <td>{{this}}</td>
+                                            {{/each}}
+                                        </tr>
+                                    {{/each}}
+                                </table>
+                            </div>
+                        {{/each}}
+                    </div>
+                </div>
+            {{/each}}
+        {{/if}}
+
         {{#if hasImages}}
             <div class="image-comparison-section">
                 <h4 style="margin-top: 1rem;">Visual Comparison</h4>

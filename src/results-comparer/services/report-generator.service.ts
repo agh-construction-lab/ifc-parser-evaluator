@@ -345,6 +345,23 @@ export class ReportGeneratorService {
         : "no",
       hasImages: comparison.images.views.length > 0,
       views,
+      hasMatrixData: comparison.geometry.entities.length > 0,
+      matrixEntities: comparison.geometry.entities.map((entity) => ({
+        globalId: entity.globalId,
+        ifcClass: entity.ifcClass,
+        matchClass: entity.matrixMatch ? "yes" : "no",
+        parserMatrices: entity.matrices.map((matrix, i) => ({
+          parserName: comparison.parsers[i]?.parserName || `Parser ${i + 1}`,
+          rows: matrix
+            ? [
+                matrix.slice(0, 4).map((v) => v.toFixed(4)),
+                matrix.slice(4, 8).map((v) => v.toFixed(4)),
+                matrix.slice(8, 12).map((v) => v.toFixed(4)),
+                matrix.slice(12, 16).map((v) => v.toFixed(4)),
+              ]
+            : [["N/A"]],
+        })),
+      })),
     });
   }
 }
