@@ -25,9 +25,18 @@ export class WebBrowserService {
   async init(serverUrl: string): Promise<void> {
     this.logger.log("Initializing headless browser...");
 
+    const isRunningAsRoot =
+      typeof process.getuid === "function" && process.getuid() === 0;
+    const shouldDisableSandbox =
+      process.env["PUPPETEER_NO_SANDBOX"] === "true" || isRunningAsRoot;
+
     this.browser = await puppeteer.launch({
       headless: true,
       devtools: false,
+      executablePath: process.env["PUPPETEER_EXECUTABLE_PATH"],
+      args: shouldDisableSandbox
+        ? ["--no-sandbox", "--disable-setuid-sandbox"]
+        : [],
       defaultViewport: {
         height: 1000,
         width: 1000,

@@ -1,0 +1,31 @@
+services:
+  evaluator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.evaluator
+    image: ifc-evaluator
+    container_name: ifc-parser-evaluator
+    volumes:
+      # Mount IFC input files (read-only)
+      - ../_ifc-input:/app/_ifc-input:ro
+      # Mount output directory (read-write)
+      - ../_ifc-output:/app/_ifc-output
+      # Docker socket for spawning parser containers
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      - PUPPETEER_NO_SANDBOX=true
+      # Host project root — used by run.sh to construct bind mount paths for parser containers
+      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+    # Required for Puppeteer/Chromium
+    security_opt:
+      - seccomp=unconfined
+    # Increase shared memory for Chromium
+    shm_size: "2gb"
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 2G

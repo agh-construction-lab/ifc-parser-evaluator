@@ -1,0 +1,19 @@
+FROM python:3.13-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app/_external/ifcopenshell-0.8.4
+
+COPY _external/ifcopenshell-0.8.4/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY _external/ifcopenshell-0.8.4 .
+
+RUN mkdir -p /app/_ifc-input /app/_ifc-output
+
+RUN printf '#!/usr/bin/env bash\nset -euo pipefail\npython main.py --ifcFiles="$1" --outputDir="$2"\n' \
+    > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,17 @@
+FROM node:25-bookworm-slim
+
+RUN npm install -g pnpm@9
+
+WORKDIR /app/_external/web-ifc-0.0.68
+
+COPY _external/web-ifc-0.0.68/package.json _external/web-ifc-0.0.68/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY _external/web-ifc-0.0.68 .
+
+RUN mkdir -p /app/_ifc-input /app/_ifc-output
+
+RUN printf '#!/usr/bin/env bash\nset -euo pipefail\nnpm start -- --ifcFiles="$1" --outputDir="$2"\n' \
+    > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

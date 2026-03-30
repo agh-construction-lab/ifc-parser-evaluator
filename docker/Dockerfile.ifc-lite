@@ -1,0 +1,19 @@
+FROM node:25-bookworm-slim
+
+WORKDIR /app/_external/ifc-lite-2.1.3
+
+COPY _external/ifc-lite-2.1.3/package.json _external/ifc-lite-2.1.3/package-lock.json ./
+COPY _external/ifc-lite-2.1.3/scripts ./scripts
+RUN npm ci
+
+COPY _external/ifc-lite-2.1.3 .
+
+# Bake WASM patch into the image
+RUN bash scripts/patch-wasm.sh
+
+RUN mkdir -p /app/_ifc-input /app/_ifc-output
+
+RUN printf '#!/usr/bin/env bash\nset -euo pipefail\nnpm start -- --ifcFiles="$1" --outputDir="$2"\n' \
+    > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
