@@ -7,7 +7,7 @@ import { GenerateReportCommand } from "./generate-report.command";
 import { Logger } from "@nestjs/common";
 import path from "path";
 
-const PARSERS = ["web-ifc-0.0.68", "ifcopenshell-0.8.4"];
+const PARSERS = ["web-ifc-0.0.68", "ifcopenshell-0.8.4", "ifc-lite-2.1.3"];
 const IFC_FILES = [
   "_ifc-input/agh/IDS_B_LOD1.ifc",
   "_ifc-input/agh/IDS_B_LOD2_ARCH.ifc",

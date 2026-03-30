@@ -5,20 +5,22 @@ import { GenerateScreenshotsCommand } from "./cli/commands/generate-screenshots.
 import { CompareResultsCommand } from "./cli/commands/compare-results.command";
 import { CompareImagesCommand } from "./cli/commands/compare-images.command";
 import { GenerateReportCommand } from "./cli/commands/generate-report.command";
-import { ParsersRunnerService } from "./parsers-runner/parsers-runner.service";
+import { ParsersRunnerModule } from "./parsers-runner/parsers-runner.module";
 import { GeometryRendererModule } from "./geometry-renderer/geometry-renderer.module";
 import { ResultsComparerModule } from "./results-comparer/results-comparer.module";
 
 @Module({
-  imports: [GeometryRendererModule, ResultsComparerModule],
+  // `imports` - list of NestJS modules
+  imports: [ParsersRunnerModule, GeometryRendererModule, ResultsComparerModule],
+
+  // `providers` - list of classes registered in DI container
   providers: [
-    AppRootCommand,
+    AppRootCommand, // This command is executed when the CLI is run without any subcommands
     ExecuteParsersCommand,
     GenerateScreenshotsCommand,
     CompareResultsCommand,
     CompareImagesCommand,
     GenerateReportCommand,
-    ParsersRunnerService,
   ],
 })
 export class AppModule {}

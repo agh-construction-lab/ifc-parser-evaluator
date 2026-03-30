@@ -151,14 +151,7 @@ window.setView = function (view) {
       break;
   }
 
-  // Update active button
-  document.querySelectorAll('#controls button').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.textContent.toLowerCase() === view ||
-      (view === 'perspective' && btn.textContent === '3D')) {
-      btn.classList.add('active');
-    }
-  });
+  camera.zoom = 2;
 };
 
 // === Mesh Loading ===

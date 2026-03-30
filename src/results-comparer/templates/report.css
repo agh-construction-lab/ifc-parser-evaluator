@@ -322,7 +322,6 @@ td {
 
 .file-details table th:last-child,
 .file-details table td:last-child {
-    width: 60px;
     text-align: center;
 }
 

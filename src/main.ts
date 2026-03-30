@@ -5,4 +5,7 @@ async function bootstrap() {
   await CommandFactory.run(AppModule, { logger: ["log", "error", "warn"] });
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error("Error starting the application:", error);
+  process.exit(1);
+});
