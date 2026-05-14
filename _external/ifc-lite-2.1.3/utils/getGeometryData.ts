@@ -8,6 +8,17 @@ import type { GeometryEntry } from "../types.ts";
 
 const SKIP_TYPES = new Set(["IfcOpeningElement", "IfcSpace"]);
 
+// @ifc-lite/wasm returns vertex data in Y-up; the evaluator output contract
+// requires Z-up. Apply (x, y, z) -> (x, -z, y) to align with web-ifc / ifcopenshell.
+function convertYUpToZUpInPlace(values: number[]): void {
+  for (let i = 0; i < values.length; i += 3) {
+    const y = values[i + 1];
+    const z = values[i + 2];
+    values[i + 1] = -z;
+    values[i + 2] = y;
+  }
+}
+
 let wasmInitialized = false;
 
 function ensureWasmInitialized() {
@@ -105,6 +116,9 @@ const getGeometryData = (
         vertexOffset += mesh.positions.length / 3;
       }
     }
+
+    convertYUpToZUpInPlace(positions);
+    convertYUpToZUpInPlace(normals);
 
     // Identity matrix - transforms are baked into vertex positions by WASM
     const identityMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];

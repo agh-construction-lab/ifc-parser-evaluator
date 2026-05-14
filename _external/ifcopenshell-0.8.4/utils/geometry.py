@@ -134,15 +134,28 @@ def get_geometry_data(ifc_file: ifcopenshell.file):
             # unindexed = list(map(float,convert_indexed_to_unindexed(verts, indexes)));
             # print(unindexed, len(unindexed))
 
-            geometry_data[global_id] = {
-                "ifcClass": type_name,
-                "mesh": {
-                    "positions": verts,
-                    "normals": normals,
-                    "indices": indexes,
-                },
-                "matrix": matrix,
-            }
+            if len(faces) > 0:
+                geometry_data[global_id] = {
+                    "ifcClass": type_name,
+                    "mesh": {
+                        "positions": verts,
+                        "normals": normals,
+                        "indices": indexes,
+                    },
+                    "matrix": matrix,
+                }
+            elif len(edges) > 0:
+                # Curve-based representation (e.g., IFC 4.3 IfcAlignment).
+                # `shape.geometry.edges` is already a flat list of index pairs.
+                geometry_data[global_id] = {
+                    "ifcClass": type_name,
+                    "lines": {
+                        "positions": verts,
+                        "indices": list(edges),
+                    },
+                    "matrix": matrix,
+                }
+            # else: entity has neither faces nor edges — skip
 
             if not iterator.next():
                 break

@@ -5,8 +5,46 @@ import * as Handlebars from "handlebars";
 import {
   ComparisonReport,
   ComparisonResult,
+  ImageViewComparison,
   ReportSummary,
 } from "../types/comparison.types";
+import { getParserLabel } from "../utils/parser-ids";
+
+type VisualComparisonPairAsset = {
+  diffImagePath: string;
+  diffPercentage: string;
+  imageAPath: string;
+  imageBPath: string;
+  leftLabel: string;
+  matchClass: string;
+  rightLabel: string;
+};
+
+type VisualComparisonViewModel = {
+  defaultDiffImagePath: string;
+  defaultDiffPercentage: string;
+  defaultImageAPath: string;
+  defaultImageBPath: string;
+  defaultLeftLabel: string;
+  defaultMatchClass: string;
+  defaultRightLabel: string;
+  onionId: string;
+  pairsJson: string;
+  viewId: string;
+  viewName: string;
+};
+
+export type VisualComparisonModel = {
+  defaultLeftParserId: string;
+  defaultRightParserId: string;
+  parserOptions: Array<{
+    isDefaultLeft: boolean;
+    isDefaultRight: boolean;
+    label: string;
+    parserId: string;
+  }>;
+  views: Array<VisualComparisonViewModel>;
+};
 
 @Injectable()
 export class ReportGeneratorService {
@@ -81,9 +119,9 @@ export class ReportGeneratorService {
     let treeMatches = 0;
     let matrixMatches = 0;
 
-    // Geometry: count matching criteria (entity, totalVertex, uniqueVertex, triangles)
+    // Geometry: count matching criteria (entity, totalVertex, uniqueVertex, triangles, lineVertex, lineSegments)
     let geometryCriteriaMatched = 0;
-    const geometryCriteriaTotal = totalFiles * 4; // 4 criteria per file
+    const geometryCriteriaTotal = totalFiles * 6; // 6 criteria per file
 
     // Images: collect all pixel diff percentages for average
     let totalPixelDiffSum = 0;
@@ -103,6 +141,8 @@ export class ReportGeneratorService {
       if (comparison.geometry.totalVertexCountMatch) geometryCriteriaMatched++;
       if (comparison.geometry.uniqueVertexCountMatch) geometryCriteriaMatched++;
       if (comparison.geometry.totalTriangleCountMatch) geometryCriteriaMatched++;
+      if (comparison.geometry.totalLineVertexCountMatch) geometryCriteriaMatched++;
+      if (comparison.geometry.totalLineSegmentCountMatch) geometryCriteriaMatched++;
 
       // Matrix: separate metric
       if (comparison.geometry.matrixMatch) matrixMatches++;
@@ -263,6 +303,225 @@ export class ReportGeneratorService {
     });
   }
 
+  buildVisualComparisonModel(
+    comparison: ComparisonResult,
+  ): VisualComparisonModel | null {
+    const parserOptions =
+      comparison.images.parserOptions && comparison.images.parserOptions.length > 0
+        ? comparison.images.parserOptions
+        : comparison.parsers.map((parser) => ({
+            parserId: parser.parserId,
+            parserName: parser.parserName,
+            parserVersion: parser.parserVersion,
+          }));
+
+    if (parserOptions.length < 2) {
+      return null;
+    }
+
+    const defaultLeftParserId =
+      comparison.images.defaultLeftParserId ?? parserOptions[0]?.parserId;
+    const defaultRightParserId =
+      comparison.images.defaultRightParserId ?? parserOptions[1]?.parserId;
+
+    if (!defaultLeftParserId || !defaultRightParserId) {
+      return null;
+    }
+
+    const pairComparisons =
+      comparison.images.pairComparisons && comparison.images.pairComparisons.length > 0
+        ? comparison.images.pairComparisons
+        : [
+            {
+              pairKey: `${defaultLeftParserId}__${defaultRightParserId}`,
+              parserIds: [defaultLeftParserId, defaultRightParserId] as [
+                string,
+                string,
+              ],
+              views: comparison.images.views,
+            },
+          ];
+
+    const parserLabelById = new Map(
+      parserOptions.map((parser) => [parser.parserId, getParserLabel(parser)]),
+    );
+    const viewNames = [
+      ...new Set(pairComparisons.flatMap((pair) => pair.views.map((v) => v.viewName))),
+    ];
+
+    const views = viewNames.map((viewName) => {
+      const orderedPairs: Record<
+        string,
+        Record<string, VisualComparisonPairAsset>
+      > = {};
+
+      for (const pairComparison of pairComparisons) {
+        const pairView =
+          pairComparison.views.find((view) => view.viewName === viewName) ??
+          this.createMissingImageViewComparison(viewName);
+        const [parserIdA, parserIdB] = pairComparison.parserIds;
+
+        orderedPairs[parserIdA] ??= {};
+        orderedPairs[parserIdB] ??= {};
+        orderedPairs[parserIdA][parserIdB] = this.buildVisualComparisonPairAsset(
+          comparison,
+          pairView,
+          pairComparison.parserIds,
+          parserIdA,
+          parserIdB,
+          parserLabelById,
+        );
+        orderedPairs[parserIdB][parserIdA] = this.buildVisualComparisonPairAsset(
+          comparison,
+          pairView,
+          pairComparison.parserIds,
+          parserIdB,
+          parserIdA,
+          parserLabelById,
+        );
+      }
+
+      const defaultPair =
+        orderedPairs[defaultLeftParserId]?.[defaultRightParserId] ??
+        this.createEmptyVisualComparisonPairAsset(
+          defaultLeftParserId,
+          defaultRightParserId,
+          parserLabelById,
+        );
+
+      return {
+        defaultDiffImagePath: defaultPair.diffImagePath,
+        defaultDiffPercentage: defaultPair.diffPercentage,
+        defaultImageAPath: defaultPair.imageAPath,
+        defaultImageBPath: defaultPair.imageBPath,
+        defaultLeftLabel: defaultPair.leftLabel,
+        defaultMatchClass: defaultPair.matchClass,
+        defaultRightLabel: defaultPair.rightLabel,
+        onionId: this.toDomId(
+          `onion-${comparison.ifcFileName}-${defaultLeftParserId}-${defaultRightParserId}-${viewName}`,
+        ),
+        pairsJson: JSON.stringify(orderedPairs),
+        viewId: this.toDomId(`view-${comparison.ifcFileName}-${viewName}`),
+        viewName,
+      };
+    });
+
+    return {
+      defaultLeftParserId,
+      defaultRightParserId,
+      parserOptions: parserOptions.map((parser) => ({
+        isDefaultLeft: parser.parserId === defaultLeftParserId,
+        isDefaultRight: parser.parserId === defaultRightParserId,
+        label: getParserLabel(parser),
+        parserId: parser.parserId,
+      })),
+      views,
+    };
+  }
+
+  private buildVisualComparisonPairAsset(
+    comparison: ComparisonResult,
+    pairView: ImageViewComparison,
+    pairParserIds: [string, string],
+    leftParserId: string,
+    rightParserId: string,
+    parserLabelById: Map<string, string>,
+  ): VisualComparisonPairAsset {
+    const isReversed =
+      pairParserIds[0] !== leftParserId || pairParserIds[1] !== rightParserId;
+    const imagePaths = isReversed
+      ? [pairView.imagePaths[1] ?? "", pairView.imagePaths[0] ?? ""]
+      : [pairView.imagePaths[0] ?? "", pairView.imagePaths[1] ?? ""];
+
+    return {
+      diffImagePath: this.toRelativeDiffImagePath(
+        pairView.diffImagePath,
+        comparison.ifcFileName,
+      ),
+      diffPercentage:
+        pairView.pixelDiffPercentage >= 0
+          ? `${pairView.pixelDiffPercentage.toFixed(2)}%`
+          : "N/A",
+      imageAPath: this.toRelativeParserImagePath(imagePaths[0], comparison),
+      imageBPath: this.toRelativeParserImagePath(imagePaths[1], comparison),
+      leftLabel:
+        parserLabelById.get(leftParserId) ?? leftParserId ?? "Left parser",
+      matchClass: this.getImageMatchClass(pairView.pixelDiffPercentage),
+      rightLabel:
+        parserLabelById.get(rightParserId) ?? rightParserId ?? "Right parser",
+    };
+  }
+
+  private createEmptyVisualComparisonPairAsset(
+    leftParserId: string,
+    rightParserId: string,
+    parserLabelById: Map<string, string>,
+  ): VisualComparisonPairAsset {
+    return {
+      diffImagePath: "",
+      diffPercentage: "N/A",
+      imageAPath: "",
+      imageBPath: "",
+      leftLabel: parserLabelById.get(leftParserId) ?? leftParserId,
+      matchClass: "no",
+      rightLabel: parserLabelById.get(rightParserId) ?? rightParserId,
+    };
+  }
+
+  private createMissingImageViewComparison(viewName: string): ImageViewComparison {
+    return {
+      viewName,
+      imagePaths: ["", ""],
+      pixelDiffCount: -1,
+      pixelDiffPercentage: -1,
+      match: false,
+    };
+  }
+
+  private getImageMatchClass(pixelDiffPercentage: number): string {
+    if (pixelDiffPercentage === 0) {
+      return "yes";
+    }
+
+    if (pixelDiffPercentage > 0 && pixelDiffPercentage <= 0.5) {
+      return "warning";
+    }
+
+    return "no";
+  }
+
+  private toDomId(value: string): string {
+    return value.replace(/[^a-zA-Z0-9_-]+/g, "-");
+  }
+
+  private toRelativeDiffImagePath(
+    diffImagePath: string | undefined,
+    ifcFileName: string,
+  ): string {
+    if (!diffImagePath) {
+      return "";
+    }
+
+    const diffParentDir = path.basename(path.dirname(diffImagePath));
+    if (diffParentDir === ifcFileName) {
+      return path.basename(diffImagePath);
+    }
+
+    return `${diffParentDir}/${path.basename(diffImagePath)}`;
+  }
+
+  private toRelativeParserImagePath(
+    imagePath: string | undefined,
+    comparison: ComparisonResult,
+  ): string {
+    if (!imagePath) {
+      return "";
+    }
+
+    const parserDirName = path.basename(path.dirname(path.dirname(imagePath)));
+    return `../../${parserDirName}/${comparison.ifcFileName}/${path.basename(imagePath)}`;
+  }
+
   /**
    * Build HTML for a single file comparison using Handlebars
    */
@@ -273,64 +532,18 @@ export class ReportGeneratorService {
     const summaryMatch =
       comparison.summary.totalEntityCountMatch &&
       comparison.summary.typeCountMatch;
-    // Count geometry criteria matches (out of 4)
+    // Count geometry criteria matches (out of 6)
     const geometryCriteriaCount = [
       comparison.geometry.entityCountMatch,
       comparison.geometry.totalVertexCountMatch,
       comparison.geometry.uniqueVertexCountMatch,
       comparison.geometry.totalTriangleCountMatch,
+      comparison.geometry.totalLineVertexCountMatch,
+      comparison.geometry.totalLineSegmentCountMatch,
     ].filter(Boolean).length;
-    const geometryMatch = geometryCriteriaCount === 4;
+    const geometryMatch = geometryCriteriaCount === 6;
     const imagesMatch = comparison.images.views.every((v) => v.match);
-
-    // Prepare view data for images
-    // Convert absolute paths to relative paths (relative to report location in _comparison/{fileName}/)
-    const views = comparison.images.views.map((v, i) => {
-      // Parser folder names include version: {parserName}-{parserVersion}
-      const parserAFolder = comparison.parsers[0]
-        ? `${comparison.parsers[0].parserName}-${comparison.parsers[0].parserVersion}`
-        : "";
-      const parserBFolder = comparison.parsers[1]
-        ? `${comparison.parsers[1].parserName}-${comparison.parsers[1].parserVersion}`
-        : "";
-
-      // Parser images are at ../../{parser-version}/{fileName}/{view}.png
-      // Diff images are in the same folder as the report
-      const imageAPath = v.imagePaths[0]
-        ? `../../${parserAFolder}/${comparison.ifcFileName}/${path.basename(v.imagePaths[0])}`
-        : "";
-      const imageBPath = v.imagePaths[1]
-        ? `../../${parserBFolder}/${comparison.ifcFileName}/${path.basename(v.imagePaths[1])}`
-        : "";
-      const diffImagePath = v.diffImagePath
-        ? path.basename(v.diffImagePath)
-        : "";
-
-      // Determine match class: yes (0%), warning (<=0.5%), no (>0.5%)
-      let matchClass = "no";
-      if (v.pixelDiffPercentage === 0) {
-        matchClass = "yes";
-      } else if (v.pixelDiffPercentage <= 0.5) {
-        matchClass = "warning";
-      }
-
-      return {
-        viewId: `${v.viewName}-${comparison.ifcFileName}`,
-        viewName: v.viewName,
-        matchClass,
-        parserAName: comparison.parsers[0]?.parserName || "Parser A",
-        parserBName: comparison.parsers[1]?.parserName || "Parser B",
-        imageAPath,
-        imageBPath,
-        diffPercentage:
-          v.pixelDiffPercentage >= 0
-            ? v.pixelDiffPercentage.toFixed(2) + "%"
-            : "N/A",
-        diffImagePath,
-        onionId: `onion-${v.viewName}-${comparison.ifcFileName}`,
-        isFirst: i === 0,
-      };
-    });
+    const visualComparison = this.buildVisualComparisonModel(comparison);
 
     return template({
       ifcFileName: comparison.ifcFileName,
@@ -369,8 +582,14 @@ export class ReportGeneratorService {
       uniqueVertexMatchClass: comparison.geometry.uniqueVertexCountMatch
         ? "yes"
         : "no",
-      hasImages: comparison.images.views.length > 0,
-      views,
+      totalLineVertexMatchClass: comparison.geometry.totalLineVertexCountMatch
+        ? "yes"
+        : "no",
+      totalLineSegmentMatchClass: comparison.geometry.totalLineSegmentCountMatch
+        ? "yes"
+        : "no",
+      hasImages: visualComparison !== null,
+      visualComparison,
       hasMatrixData: comparison.geometry.entities.length > 0,
       matrixEntities: comparison.geometry.entities.map((entity) => ({
         globalId: entity.globalId,

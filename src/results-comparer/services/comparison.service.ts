@@ -13,6 +13,7 @@ import {
   TreeComparison,
   TreeDifference,
 } from "../types/comparison.types";
+import { getParserId } from "../utils/parser-ids";
 
 const NUMERIC_PRECISION = 5;
 
@@ -38,6 +39,7 @@ export class ComparisonService {
     });
 
     const parsers: Array<ParserComparisonData> = outputs.map((o) => ({
+      parserId: getParserId(o.data.metadata),
       parserName: o.data.metadata.parserName,
       parserVersion: o.data.metadata.parserVersion,
       processingTimeMs: o.data.metadata.processingTimeMs,
@@ -237,6 +239,8 @@ export class ComparisonService {
     const totalVertexCounts = outputs.map(() => 0);
     const totalTriangleCounts = outputs.map(() => 0);
     const uniqueVertexCounts = outputs.map(() => 0);
+    const totalLineVertexCounts = outputs.map(() => 0);
+    const totalLineSegmentCounts = outputs.map(() => 0);
     let allMatricesMatch = true;
 
     const entities: Array<GeometryEntityComparison> = [];
@@ -244,11 +248,23 @@ export class ComparisonService {
     for (const globalId of allGeometryIds) {
       const geometries = outputs.map((o) => o.geometries[globalId]);
 
+      // --- mesh metrics ---
       const vertexCounts = geometries.map((g) =>
         g?.mesh?.positions ? g.mesh.positions.length / 3 : 0,
       );
       const triangleCounts = geometries.map((g) =>
         g?.mesh?.indices ? g.mesh.indices.length / 3 : 0,
+      );
+      const entityUniqueVertexCounts = geometries.map((g) =>
+        g?.mesh?.positions ? this.countUniqueVertices(g.mesh.positions) : 0,
+      );
+
+      // --- lines metrics ---
+      const lineVertexCounts = geometries.map((g) =>
+        g?.lines?.positions ? g.lines.positions.length / 3 : 0,
+      );
+      const lineSegmentCounts = geometries.map((g) =>
+        g?.lines?.indices ? g.lines.indices.length / 2 : 0,
       );
 
       // Update totals
@@ -258,23 +274,19 @@ export class ComparisonService {
       triangleCounts.forEach((c, i) => {
         totalTriangleCounts[i] += c;
       });
-
-      // Count unique vertices per entity
-      const entityUniqueVertexCounts = geometries.map((g) => {
-        if (g?.mesh?.positions) {
-          return this.countUniqueVertices(g.mesh.positions);
-        }
-        return 0;
+      entityUniqueVertexCounts.forEach((c, i) => {
+        uniqueVertexCounts[i] += c;
       });
-
-      // Update total unique vertex counts
-      entityUniqueVertexCounts.forEach((count, i) => {
-        uniqueVertexCounts[i] += count;
+      lineVertexCounts.forEach((c, i) => {
+        totalLineVertexCounts[i] += c;
+      });
+      lineSegmentCounts.forEach((c, i) => {
+        totalLineSegmentCounts[i] += c;
       });
 
       const ifcClass = geometries.find((g) => g)?.ifcClass || "Unknown";
 
-      // Compare matrices
+      // Matrices
       const matrices = geometries.map((g) => g?.matrix);
       const matrixMatch = this.compareMatrices(matrices);
       if (!matrixMatch) allMatricesMatch = false;
@@ -290,6 +302,12 @@ export class ComparisonService {
           (c) => c === entityUniqueVertexCounts[0],
         ),
         triangleMatch: triangleCounts.every((c) => c === triangleCounts[0]),
+        lineVertexCounts,
+        lineSegmentCounts,
+        lineVertexMatch: lineVertexCounts.every((c) => c === lineVertexCounts[0]),
+        lineSegmentMatch: lineSegmentCounts.every(
+          (c) => c === lineSegmentCounts[0],
+        ),
         matrixMatch,
         matrices,
       });
@@ -310,6 +328,14 @@ export class ComparisonService {
         (c) => c === uniqueVertexCounts[0],
       ),
       uniqueVertexCounts,
+      totalLineVertexCountMatch: totalLineVertexCounts.every(
+        (c) => c === totalLineVertexCounts[0],
+      ),
+      totalLineVertexCounts,
+      totalLineSegmentCountMatch: totalLineSegmentCounts.every(
+        (c) => c === totalLineSegmentCounts[0],
+      ),
+      totalLineSegmentCounts,
       matrixMatch: allMatricesMatch,
       entities,
     };

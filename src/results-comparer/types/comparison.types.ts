@@ -34,9 +34,13 @@ export interface SpatialTreeNode {
 export interface GeometryEntry {
   ifcClass: string;
   matrix?: Array<number>;
-  mesh: {
+  mesh?: {
     positions: Array<number>;
     normals: Array<number>;
+    indices: Array<number>;
+  };
+  lines?: {
+    positions: Array<number>;
     indices: Array<number>;
   };
 }
@@ -54,6 +58,7 @@ export interface ComparisonResult {
 }
 
 export interface ParserComparisonData {
+  parserId: string;
   parserName: string;
   parserVersion: string;
   processingTimeMs: number;
@@ -100,6 +105,10 @@ export interface GeometryComparison {
   totalTriangleCounts: Array<number>;
   uniqueVertexCountMatch: boolean;
   uniqueVertexCounts: Array<number>;
+  totalLineVertexCountMatch: boolean;
+  totalLineVertexCounts: Array<number>;
+  totalLineSegmentCountMatch: boolean;
+  totalLineSegmentCounts: Array<number>;
   matrixMatch: boolean;
   entities: Array<GeometryEntityComparison>;
 }
@@ -113,12 +122,20 @@ export interface GeometryEntityComparison {
   vertexMatch: boolean;
   uniqueVertexMatch: boolean;
   triangleMatch: boolean;
+  lineVertexCounts: Array<number>;
+  lineSegmentCounts: Array<number>;
+  lineVertexMatch: boolean;
+  lineSegmentMatch: boolean;
   matrixMatch: boolean;
   matrices: Array<Array<number> | undefined>;
 }
 
 export interface ImageComparison {
   views: Array<ImageViewComparison>;
+  parserOptions?: Array<ImageParserOption>;
+  defaultLeftParserId?: string;
+  defaultRightParserId?: string;
+  pairComparisons?: Array<ImageParserPairComparison>;
 }
 
 export interface ImageViewComparison {
@@ -128,6 +145,18 @@ export interface ImageViewComparison {
   pixelDiffCount: number;
   pixelDiffPercentage: number;
   match: boolean;
+}
+
+export interface ImageParserOption {
+  parserId: string;
+  parserName: string;
+  parserVersion: string;
+}
+
+export interface ImageParserPairComparison {
+  pairKey: string;
+  parserIds: [string, string];
+  views: Array<ImageViewComparison>;
 }
 
 // Report output

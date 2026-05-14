@@ -40,6 +40,8 @@ class CompareImagesCommand extends CommandRunner {
     ifcFiles: Array<string>,
     comparisons: Array<ComparisonResult>,
   ): void {
+    void parsers;
+
     for (const ifcFile of ifcFiles) {
       const ifcFileName = path.basename(ifcFile, ".ifc");
 
@@ -50,32 +52,18 @@ class CompareImagesCommand extends CommandRunner {
       }
 
       const diffOutputDir = path.join(outputDir, "_comparison", ifcFileName);
-      const resultDirs = parsers.map((parser) =>
-        path.join(outputDir, parser, ifcFileName),
+      const parserResults = comparison.parsers.map((parser) => ({
+        parserId: parser.parserId,
+        parserName: parser.parserName,
+        parserVersion: parser.parserVersion,
+        resultDir: path.dirname(parser.outputFilePath),
+      }));
+
+      comparison.images = this.imageComparerService.buildPairwiseComparisons(
+        parserResults,
+        diffOutputDir,
+        [...RENDER_VIEWS],
       );
-
-      if (resultDirs.length >= 2) {
-        comparison.images.views = this.imageComparerService.compareAllViews(
-          resultDirs[0],
-          resultDirs[1],
-          diffOutputDir,
-          [...RENDER_VIEWS],
-        );
-
-        for (const view of RENDER_VIEWS) {
-          const imgA = path.join(resultDirs[0], `${view}.png`);
-          const imgB = path.join(resultDirs[1], `${view}.png`);
-          const diffImg = path.join(diffOutputDir, `${view}-diff.png`);
-          const combinedImg = path.join(diffOutputDir, `${view}-combined.png`);
-
-          this.imageComparerService.createCombinedImage(
-            imgA,
-            imgB,
-            diffImg,
-            combinedImg,
-          );
-        }
-      }
 
       this.logger.log(`Compared images for: ${ifcFileName}`);
     }

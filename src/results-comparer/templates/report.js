@@ -212,17 +212,141 @@ Chart.defaults.borderColor = '#d0d7de';
         });
     });
 
-    // Toggle view tabs
-    document.querySelectorAll('.view-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const viewId = tab.dataset.view;
-            const parent = tab.closest('.image-comparison-section');
+    function parseViewPairs(viewContent) {
+        const dataNode = viewContent.querySelector('.view-pairs-data');
 
-            parent.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
-            parent.querySelectorAll('.view-content').forEach(c => c.classList.remove('active'));
+        if (!dataNode) {
+            return {};
+        }
 
-            tab.classList.add('active');
-            document.getElementById(viewId).classList.add('active');
+        try {
+            return JSON.parse(dataNode.textContent || '{}');
+        } catch (error) {
+            console.error('Could not parse visual comparison pair data', error);
+            return {};
+        }
+    }
+
+    function setImageSource(image, source) {
+        if (!image) {
+            return;
+        }
+
+        if (!source) {
+            image.style.display = 'none';
+            image.removeAttribute('src');
+            return;
+        }
+
+        image.style.display = '';
+        image.src = source;
+    }
+
+    function updateViewContent(viewContent, leftParserId, rightParserId) {
+        const pairData = parseViewPairs(viewContent);
+        const selectedPair = pairData[leftParserId]?.[rightParserId];
+
+        if (!selectedPair) {
+            return;
+        }
+
+        const parserALabel = viewContent.querySelector('.parser-a-label');
+        const parserBLabel = viewContent.querySelector('.parser-b-label');
+        const diffLabel = viewContent.querySelector('.diff-label');
+        const parserAImage = viewContent.querySelector('.parser-a-image');
+        const parserBImage = viewContent.querySelector('.parser-b-image');
+        const diffImage = viewContent.querySelector('.diff-image');
+        const parserAOnionImage = viewContent.querySelector('.parser-a-onion-image');
+        const parserBOnionImage = viewContent.querySelector('.parser-b-onion-image');
+        const parserASliderLabel = viewContent.querySelector('.parser-a-slider-label');
+        const parserBSliderLabel = viewContent.querySelector('.parser-b-slider-label');
+
+        if (parserALabel) parserALabel.textContent = selectedPair.leftLabel;
+        if (parserBLabel) parserBLabel.textContent = selectedPair.rightLabel;
+        if (diffLabel) diffLabel.textContent = `Difference (${selectedPair.diffPercentage})`;
+        if (parserASliderLabel) parserASliderLabel.textContent = selectedPair.leftLabel;
+        if (parserBSliderLabel) parserBSliderLabel.textContent = selectedPair.rightLabel;
+
+        setImageSource(parserAImage, selectedPair.imageAPath);
+        setImageSource(parserBImage, selectedPair.imageBPath);
+        setImageSource(diffImage, selectedPair.diffImagePath);
+        setImageSource(parserAOnionImage, selectedPair.imageAPath);
+        setImageSource(parserBOnionImage, selectedPair.imageBPath);
+    }
+
+    function updateViewTabStatus(section, leftParserId, rightParserId) {
+        section.querySelectorAll('.view-content').forEach(viewContent => {
+            const pairData = parseViewPairs(viewContent);
+            const selectedPair = pairData[leftParserId]?.[rightParserId];
+            const tabStatus = section.querySelector(`.view-tab[data-view="${viewContent.id}"] .view-tab-status`);
+
+            if (!tabStatus || !selectedPair) {
+                return;
+            }
+
+            tabStatus.className = `match-icon view-tab-status ${selectedPair.matchClass}`;
         });
+    }
+
+    function applySelectedParserPair(section) {
+        const leftSelect = section.querySelector('.parser-select-left');
+        const rightSelect = section.querySelector('.parser-select-right');
+
+        if (!leftSelect || !rightSelect) {
+            return;
+        }
+
+        const leftParserId = leftSelect.value;
+        const rightParserId = rightSelect.value;
+
+        section.querySelectorAll('.view-content').forEach(viewContent => {
+            updateViewContent(viewContent, leftParserId, rightParserId);
+        });
+
+        updateViewTabStatus(section, leftParserId, rightParserId);
+    }
+
+    document.querySelectorAll('.image-comparison-section').forEach(section => {
+        const leftSelect = section.querySelector('.parser-select-left');
+        const rightSelect = section.querySelector('.parser-select-right');
+
+        if (!leftSelect || !rightSelect) {
+            return;
+        }
+
+        leftSelect.dataset.previousValue = leftSelect.value;
+        rightSelect.dataset.previousValue = rightSelect.value;
+
+        function handleParserChange(changedSelect, otherSelect) {
+            const previousValue = changedSelect.dataset.previousValue || changedSelect.value;
+
+            if (changedSelect.value === otherSelect.value) {
+                otherSelect.value = previousValue !== changedSelect.value
+                    ? previousValue
+                    : Array.from(otherSelect.options).find(option => option.value !== changedSelect.value)?.value || otherSelect.value;
+            }
+
+            changedSelect.dataset.previousValue = changedSelect.value;
+            otherSelect.dataset.previousValue = otherSelect.value;
+
+            applySelectedParserPair(section);
+        }
+
+        leftSelect.addEventListener('change', () => handleParserChange(leftSelect, rightSelect));
+        rightSelect.addEventListener('change', () => handleParserChange(rightSelect, leftSelect));
+
+        section.querySelectorAll('.view-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const viewId = tab.dataset.view;
+
+                section.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+                section.querySelectorAll('.view-content').forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(viewId).classList.add('active');
+            });
+        });
+
+        applySelectedParserPair(section);
     });
 })();

@@ -12,6 +12,10 @@ type GeometryEntry = {
     normals?: number[];
     indices?: number[];
   };
+  lines?: {
+    positions?: number[];
+    indices?: number[];
+  };
   positions?: number[];
   normals?: number[];
   indices?: number[];
@@ -19,10 +23,16 @@ type GeometryEntry = {
   matrix?: number[];
 }
 
+type UnifiedBoundingBox = {
+  min: [number, number, number];
+  max: [number, number, number];
+};
+
 declare global {
   interface Window {
     setView: (view: string) => void;
     addMesh: (geometriesData: Record<string, GeometryEntry>) => void;
+    setBoundingBox: (bbox: UnifiedBoundingBox | null) => void;
     loadSampleGeometry: () => void;
   }
 }
@@ -42,6 +52,7 @@ const canvas = document.getElementById('canvas');
 const entityCountEl = document.getElementById('entity-count');
 const vertexCountEl = document.getElementById('vertex-count');
 const triangleCountEl = document.getElementById('triangle-count');
+const lineSegmentCountEl = document.getElementById('line-segment-count');
 
 // Renderer
 const renderer = new THREE.WebGLRenderer({
@@ -101,6 +112,10 @@ controls.dampingFactor = 0.05;
 // === State ===
 let currentMesh = null;
 let animationId = null;
+// Optional unified bbox shared across parsers for the same IFC file.
+// When set (via window.setBoundingBox), addMesh uses it for centering + camera framing
+// instead of computing from local geometry — ensuring consistent renders across parsers.
+let unifiedBoundingBox = null;
 
 // === Animation Loop ===
 function animate() {
@@ -124,6 +139,11 @@ window.addEventListener('resize', () => {
 
   renderer.setSize(width, height);
 });
+
+// === Shared bbox control ===
+window.setBoundingBox = function (bbox) {
+  unifiedBoundingBox = bbox;
+};
 
 // === View Control ===
 window.setView = function (view) {
@@ -165,72 +185,155 @@ window.addMesh = function (geometriesData) {
   const entityKeys = Object.keys(geometriesData);
   if (entityKeys.length === 0) return;
 
-  let combinedGeometry = null;
+  let combinedMeshGeometry = null;
+  let combinedLinesGeometry = null;
   let totalVertices = 0;
   let totalTriangles = 0;
+  let totalLineSegments = 0;
 
   for (const globalId of entityKeys) {
     const entry = geometriesData[globalId];
-
-    // Support both old format (positions/normals/indexes) and new format (mesh.positions/mesh.normals/mesh.indices)
-    const positions = entry.mesh?.positions ?? entry.positions;
-    const normals = entry.mesh?.normals ?? entry.normals;
-    const indices = entry.mesh?.indices ?? entry.indexes ?? entry.indices;
     const matrix = entry.matrix;
 
-    if (!positions || !normals || !indices) {
-      console.warn(`Skipping entity ${globalId}: missing geometry data`);
-      continue;
+    // --- mesh (triangulated body) ---
+    // Support both old format (positions/normals/indexes) and new format (mesh.positions/.normals/.indices)
+    const meshPositions = entry.mesh?.positions ?? entry.positions;
+    const meshNormals = entry.mesh?.normals ?? entry.normals;
+    const meshIndices = entry.mesh?.indices ?? entry.indexes ?? entry.indices;
+
+    if (meshPositions && meshNormals && meshIndices && meshIndices.length > 0) {
+      const meshGeometry = new THREE.BufferGeometry();
+      meshGeometry.setAttribute('position', new THREE.Float32BufferAttribute(meshPositions, 3));
+      meshGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(meshNormals, 3));
+      meshGeometry.setIndex(meshIndices);
+
+      if (matrix && matrix.length === 16) {
+        meshGeometry.applyMatrix4(new THREE.Matrix4().fromArray(matrix));
+      }
+
+      totalVertices += meshPositions.length / 3;
+      totalTriangles += meshIndices.length / 3;
+
+      combinedMeshGeometry = combinedMeshGeometry === null
+        ? meshGeometry
+        : BufferGeometryUtils.mergeGeometries([combinedMeshGeometry, meshGeometry], false);
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-    geometry.setIndex(indices);
+    // --- lines (polylines / line segments) ---
+    const linePositions = entry.lines?.positions;
+    const lineIndices = entry.lines?.indices;
 
-    // Apply transformation matrix if present
-    if (matrix && matrix.length === 16) {
-      const transformMatrix = new THREE.Matrix4().fromArray(matrix);
-      geometry.applyMatrix4(transformMatrix);
-    }
+    if (linePositions && lineIndices && lineIndices.length > 0) {
+      const linesGeometry = new THREE.BufferGeometry();
+      linesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+      linesGeometry.setIndex(lineIndices);
 
-    totalVertices += positions.length / 3;
-    totalTriangles += indices.length / 3;
+      if (matrix && matrix.length === 16) {
+        linesGeometry.applyMatrix4(new THREE.Matrix4().fromArray(matrix));
+      }
 
-    if (combinedGeometry === null) {
-      combinedGeometry = geometry;
-    } else {
-      combinedGeometry = BufferGeometryUtils.mergeGeometries([combinedGeometry, geometry], false);
+      totalLineSegments += lineIndices.length / 2;
+
+      combinedLinesGeometry = combinedLinesGeometry === null
+        ? linesGeometry
+        : BufferGeometryUtils.mergeGeometries([combinedLinesGeometry, linesGeometry], false);
     }
   }
 
-  if (combinedGeometry === null) return;
+  if (combinedMeshGeometry === null && combinedLinesGeometry === null) return;
 
-  // Center geometry
-  combinedGeometry.computeBoundingBox();
-  combinedGeometry.center();
+  // Determine bounding box: prefer unified (shared across parsers) if set, else compute local.
+  let boundsBox;
+  if (unifiedBoundingBox !== null) {
+    boundsBox = new THREE.Box3(
+      new THREE.Vector3().fromArray(unifiedBoundingBox.min),
+      new THREE.Vector3().fromArray(unifiedBoundingBox.max),
+    );
+  } else {
+    const allPositions = [];
+    for (const g of [combinedMeshGeometry, combinedLinesGeometry]) {
+      if (g === null) continue;
+      const arr = g.getAttribute('position').array;
+      for (let i = 0; i < arr.length; i++) allPositions.push(arr[i]);
+    }
+    const tmp = new THREE.BufferGeometry();
+    tmp.setAttribute('position', new THREE.Float32BufferAttribute(allPositions, 3));
+    tmp.computeBoundingBox();
+    boundsBox = tmp.boundingBox;
+  }
 
-  // Create wireframe visualization
-  const wireframe = createWireframe(combinedGeometry);
+  const center = new THREE.Vector3();
+  boundsBox.getCenter(center);
+  const centerOffset = new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z);
 
-  // Apply rotation to convert coordinate system (Y-up to Z-up viewing)
-  wireframe.rotation.set(
+  if (combinedMeshGeometry !== null) combinedMeshGeometry.applyMatrix4(centerOffset);
+  if (combinedLinesGeometry !== null) combinedLinesGeometry.applyMatrix4(centerOffset);
+
+  // Group holds both wireframe (from mesh) and line segments (from lines)
+  const group = new THREE.Group();
+
+  if (combinedMeshGeometry !== null) {
+    const wireframe = createWireframe(combinedMeshGeometry);
+    group.add(wireframe);
+  }
+
+  if (combinedLinesGeometry !== null) {
+    const alignmentLines = createAlignmentLines(combinedLinesGeometry);
+    group.add(alignmentLines);
+  }
+
+  // Apply rotation to convert coordinate system (Z-up parser output -> Three.js Y-up viewing)
+  group.rotation.set(
     THREE.MathUtils.degToRad(-90),
     0,
     THREE.MathUtils.degToRad(90)
   );
 
-  scene.add(wireframe);
-  currentMesh = wireframe;
+  scene.add(group);
+  currentMesh = group;
 
-  // Fit camera to object
-  fitCameraToObject(combinedGeometry);
+  // Fit camera to combined bounds (unified or local)
+  fitCameraToBox(boundsBox);
 
   // Update stats
   entityCountEl.textContent = String(entityKeys.length);
   vertexCountEl.textContent = totalVertices.toLocaleString();
   triangleCountEl.textContent = totalTriangles.toLocaleString();
+  if (lineSegmentCountEl) lineSegmentCountEl.textContent = totalLineSegments.toLocaleString();
 };
+
+// === Alignment Line Rendering ===
+function createAlignmentLines(geometry) {
+  const posAttr = geometry.getAttribute('position');
+  const idxAttr = geometry.getIndex();
+  const linePositions = [];
+
+  if (idxAttr) {
+    const idx = idxAttr.array;
+    // indices are pairs: [a,b, a,b, ...] — each pair is one segment
+    for (let i = 0; i < idx.length; i += 2) {
+      const a = idx[i];
+      const b = idx[i + 1];
+      linePositions.push(
+        posAttr.getX(a), posAttr.getY(a), posAttr.getZ(a),
+        posAttr.getX(b), posAttr.getY(b), posAttr.getZ(b),
+      );
+    }
+  }
+
+  const lineGeometry = new LineSegmentsGeometry();
+  lineGeometry.setPositions(linePositions);
+
+  const lineMaterial = new LineMaterial({
+    color: 0x4fc3f7,
+    linewidth: 3,
+    transparent: true,
+    opacity: 0.9,
+  });
+  lineMaterial.resolution.set(window.innerWidth, window.innerHeight);
+
+  return new LineSegments2(lineGeometry, lineMaterial);
+}
 
 // === Wireframe Creation ===
 function createWireframe(geometry) {
@@ -329,11 +432,9 @@ function createVertexPoints(vertices) {
 }
 
 // === Camera Fitting ===
-function fitCameraToObject(geometry) {
-  geometry.computeBoundingBox();
-  const boundingBox = geometry.boundingBox;
+function fitCameraToBox(box) {
   const size = new THREE.Vector3();
-  boundingBox.getSize(size);
+  box.getSize(size);
 
   const maxDim = Math.max(size.x, size.y, size.z);
   const padding = 1.5;

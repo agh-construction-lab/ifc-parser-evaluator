@@ -9,5 +9,7 @@ docker build -t ifc-web-ifc      -f "${SCRIPT_DIR}/Dockerfile.web-ifc"      "${P
 docker build -t ifc-ifc-lite     -f "${SCRIPT_DIR}/Dockerfile.ifc-lite"     "${PROJECT_ROOT}"
 docker build -t ifc-ifcopenshell -f "${SCRIPT_DIR}/Dockerfile.ifcopenshell" "${PROJECT_ROOT}"
 
+docker build -t ifc-evaluator    -f "${SCRIPT_DIR}/Dockerfile.evaluator"    "${PROJECT_ROOT}"
+
 echo "Running evaluator..."
 HOST_PROJECT_ROOT="${PROJECT_ROOT}" docker compose -f "${SCRIPT_DIR}/docker-compose.yml" run --rm evaluator

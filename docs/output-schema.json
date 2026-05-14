@@ -181,8 +181,11 @@
             "type": "object",
             "required": [
                 "ifcClass",
-                "mesh",
                 "matrix"
+            ],
+            "anyOf": [
+                { "required": ["mesh"] },
+                { "required": ["lines"] }
             ],
             "properties": {
                 "ifcClass": {
@@ -200,6 +203,7 @@
                 },
                 "mesh": {
                     "type": "object",
+                    "description": "Triangulated body geometry. Present for entities with solid representation.",
                     "required": [
                         "positions",
                         "normals",
@@ -222,7 +226,32 @@
                         },
                         "indices": {
                             "type": "array",
-                            "description": "Triangle indices as flat array [i1,i2,i3, i4,i5,i6, ...]",
+                            "description": "Triangle indices as flat array [i1,i2,i3, i4,i5,i6, ...] (triplets)",
+                            "items": {
+                                "type": "integer",
+                                "minimum": 0
+                            }
+                        }
+                    }
+                },
+                "lines": {
+                    "type": "object",
+                    "description": "Polyline geometry (line segments). Present for entities with curve-based representation (e.g., IFC 4.3 IfcAlignment).",
+                    "required": [
+                        "positions",
+                        "indices"
+                    ],
+                    "properties": {
+                        "positions": {
+                            "type": "array",
+                            "description": "Vertex positions as flat array [x1,y1,z1, x2,y2,z2, ...]",
+                            "items": {
+                                "type": "number"
+                            }
+                        },
+                        "indices": {
+                            "type": "array",
+                            "description": "Line segment indices as flat array [a1,b1, a2,b2, ...] (pairs, each pair defines one segment from index a to index b)",
                             "items": {
                                 "type": "integer",
                                 "minimum": 0

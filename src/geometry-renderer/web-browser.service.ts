@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as fs from "fs";
 import puppeteer, { Browser, Page } from "puppeteer";
+import { BoundingBox } from "./bbox.utils";
 
 const RENDER_VIEWS = ["front", "left", "right", "top", "perspective"] as const;
 type ViewType = (typeof RENDER_VIEWS)[number];
@@ -10,6 +11,7 @@ declare global {
   interface Window {
     addMesh: (data: unknown) => void;
     setView: (view: string) => void;
+    setBoundingBox: (bbox: BoundingBox | null) => void;
   }
 }
 
@@ -67,6 +69,25 @@ export class WebBrowserService {
       this.page = null;
       this.logger.log("Browser closed");
     }
+  }
+
+  /**
+   * Set a shared bounding box used by addMesh for camera framing and centering.
+   * Pass null to revert to per-geometry computation.
+   *
+   * When set, every subsequent addMesh call will use this bbox instead of computing
+   * its own — guaranteeing that all parser renders of the same IFC file land in the
+   * same camera frame, enabling meaningful pixel-by-pixel comparison even when parsers
+   * disagree about which entities to include.
+   */
+  async setBoundingBox(bbox: BoundingBox | null): Promise<void> {
+    if (this.page === null) {
+      throw new Error("Page is not initialized");
+    }
+
+    await this.page.evaluate((b) => {
+      window.setBoundingBox(b);
+    }, bbox);
   }
 
   /**

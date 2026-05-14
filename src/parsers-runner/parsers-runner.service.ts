@@ -49,7 +49,9 @@ export class ParsersRunnerService {
   private async runOne(params: ParserRunProps): Promise<ParserRunResult> {
     const { parser, ifcFiles, outputDir } = params;
     const dir = path.resolve(process.cwd(), "_external", parser);
-    const scriptPath = path.join(dir, "run.sh");
+    const scriptName =
+      process.env["PARSERS_LOCAL"] === "true" ? "run-local.sh" : "run.sh";
+    const scriptPath = path.join(dir, scriptName);
 
     const doesParserExist = await fs
       .access(scriptPath)

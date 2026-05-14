@@ -133,6 +133,20 @@
                     {{/each}}
                     <td><span class="match-icon {{uniqueVertexMatchClass}}"></span></td>
                 </tr>
+                <tr>
+                    <td>Line Vertices</td>
+                    {{#each geometry.totalLineVertexCounts}}
+                        <td>{{formatNumber this}}</td>
+                    {{/each}}
+                    <td><span class="match-icon {{totalLineVertexMatchClass}}"></span></td>
+                </tr>
+                <tr>
+                    <td>Line Segments</td>
+                    {{#each geometry.totalLineSegmentCounts}}
+                        <td>{{formatNumber this}}</td>
+                    {{/each}}
+                    <td><span class="match-icon {{totalLineSegmentMatchClass}}"></span></td>
+                </tr>
             </tbody>
         </table>
 
@@ -180,41 +194,64 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="image-comparison-section">
+                        <div class="parser-selector-grid">
+                            <label class="parser-select-group">
+                                <span class="parser-select-label">Left Parser</span>
+                                <select class="parser-select parser-select-left">
+                                    {{#each visualComparison.parserOptions}}
+                                        <option value="{{this.parserId}}" {{#if this.isDefaultLeft}}selected{{/if}}>
+                                            {{this.label}}
+                                        </option>
+                                    {{/each}}
+                                </select>
+                            </label>
+                            <label class="parser-select-group">
+                                <span class="parser-select-label">Right Parser</span>
+                                <select class="parser-select parser-select-right">
+                                    {{#each visualComparison.parserOptions}}
+                                        <option value="{{this.parserId}}" {{#if this.isDefaultRight}}selected{{/if}}>
+                                            {{this.label}}
+                                        </option>
+                                    {{/each}}
+                                </select>
+                            </label>
+                        </div>
                         <div class="view-tabs">
-                            {{#each views}}
+                            {{#each visualComparison.views}}
                                 <button class="view-tab {{#if @first}}active{{/if}}" data-view="{{this.viewId}}">
                                     {{this.viewName}}
-                                    <span class="match-icon {{this.matchClass}}" style="margin-left: 0.5rem;"></span>
+                                    <span class="match-icon view-tab-status {{this.defaultMatchClass}}" style="margin-left: 0.5rem;"></span>
                                 </button>
                             {{/each}}
                         </div>
-                        {{#each views}}
+                        {{#each visualComparison.views}}
                             <div class="view-content {{#if @first}}active{{/if}}" id="{{this.viewId}}">
+                                <script type="application/json" class="view-pairs-data">{{{this.pairsJson}}}</script>
                                 <div class="image-comparison-grid">
                                     <div class="image-comparison-card">
-                                        <div class="label">{{this.parserAName}}</div>
-                                        <img src="{{this.imageAPath}}" alt="Result A" onerror="this.style.display='none'">
+                                        <div class="label parser-a-label">{{this.defaultLeftLabel}}</div>
+                                        <img class="parser-a-image" src="{{this.defaultImageAPath}}" alt="Result A" onerror="this.style.display='none'">
                                     </div>
                                     <div class="image-comparison-card">
-                                        <div class="label">{{this.parserBName}}</div>
-                                        <img src="{{this.imageBPath}}" alt="Result B" onerror="this.style.display='none'">
+                                        <div class="label parser-b-label">{{this.defaultRightLabel}}</div>
+                                        <img class="parser-b-image" src="{{this.defaultImageBPath}}" alt="Result B" onerror="this.style.display='none'">
                                     </div>
                                     <div class="image-comparison-card">
-                                        <div class="label">Difference ({{this.diffPercentage}})</div>
-                                        <img src="{{this.diffImagePath}}" alt="Diff" onerror="this.style.display='none'">
+                                        <div class="label diff-label">Difference ({{this.defaultDiffPercentage}})</div>
+                                        <img class="diff-image" src="{{this.defaultDiffImagePath}}" alt="Diff" onerror="this.style.display='none'">
                                     </div>
                                 </div>
                                 <div class="onion-slider-container">
                                     <div class="label">Onion Skin Comparison</div>
                                     <div class="onion-slider-wrapper">
-                                        <img class="image-a" src="{{this.imageAPath}}" alt="Result A">
-                                        <img class="image-b" src="{{this.imageBPath}}" alt="Result B" id="{{this.onionId}}">
+                                        <img class="image-a parser-a-onion-image" src="{{this.defaultImageAPath}}" alt="Result A">
+                                        <img class="image-b parser-b-onion-image" src="{{this.defaultImageBPath}}" alt="Result B" id="{{this.onionId}}">
                                     </div>
                                     <div class="onion-slider-controls">
-                                        <span class="slider-label">{{this.parserAName}}</span>
-                                        <input type="range" min="0" max="100" value="50"
+                                        <span class="slider-label parser-a-slider-label">{{this.defaultLeftLabel}}</span>
+                                        <input type="range" min="0" max="100" value="50" class="onion-slider"
                                             oninput="document.getElementById('{{this.onionId}}').style.opacity = this.value / 100">
-                                        <span class="slider-label">{{this.parserBName}}</span>
+                                        <span class="slider-label parser-b-slider-label">{{this.defaultRightLabel}}</span>
                                     </div>
                                 </div>
                             </div>

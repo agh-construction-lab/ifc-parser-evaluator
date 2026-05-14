@@ -1,6 +1,7 @@
 import { Command, CommandRunner } from "nest-commander";
 import { Logger } from "@nestjs/common";
 import { ReportGeneratorService } from "src/results-comparer/services/report-generator.service";
+import { ChartExportService } from "src/results-comparer/services/chart-export.service";
 import { ComparisonResult } from "src/results-comparer/types/comparison.types";
 import * as path from "path";
 
@@ -16,7 +17,10 @@ type Props = {
 class GenerateReportCommand extends CommandRunner {
   private readonly logger = new Logger(GenerateReportCommand.name);
 
-  constructor(private readonly reportGeneratorService: ReportGeneratorService) {
+  constructor(
+    private readonly reportGeneratorService: ReportGeneratorService,
+    private readonly chartExportService: ChartExportService,
+  ) {
     super();
   }
 
@@ -56,9 +60,14 @@ class GenerateReportCommand extends CommandRunner {
     this.reportGeneratorService.generateIndexHtml(reportLinks, indexPath);
     this.logger.log(`Index saved: ${indexPath}`);
 
-    this.logger.log("Report generation completed!");
+    // Render publication-ready PNG charts to <outputDir>/assets/
+    this.logger.log("Generating publication charts...");
+    await this.chartExportService.generatePublicationCharts(
+      comparisons,
+      outputDir,
+    );
 
-    return Promise.resolve();
+    this.logger.log("Report generation completed!");
   }
 }
 

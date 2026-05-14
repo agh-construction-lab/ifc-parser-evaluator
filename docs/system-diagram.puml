@@ -1,0 +1,188 @@
+@startuml
+title IFC Parser Evaluator - Stage-Oriented System Diagram
+top to bottom direction
+
+skinparam Shadowing false
+skinparam defaultFontName Arial
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam wrapWidth 210
+skinparam ArrowColor #556372
+skinparam ArrowThickness 1.2
+skinparam PackageBorderColor #C9D4DE
+skinparam ComponentBorderColor #5E6B76
+skinparam ArtifactBorderColor #5E6B76
+skinparam FolderBorderColor #5E6B76
+skinparam RectangleBorderColor #5E6B76
+skinparam PackageBackgroundColor #FCFDFC
+skinparam ComponentBackgroundColor #FFFFFF
+skinparam ArtifactBackgroundColor #EAF3FF
+skinparam FolderBackgroundColor #EAF3FF
+skinparam RectangleBackgroundColor #FFFFFF
+
+actor "CLI invocation" as cli
+component "main.ts\nCommandFactory.run(AppModule)" as main
+component "AppModule\nNestJS DI graph" as app
+component "AppRootCommand\nsequential pipeline orchestrator" as root
+note right of root
+Stages A-E are executed in order.
+Docker is intentionally omitted.
+Parsers are shown as logical execution components.
+end note
+
+package "STAGE A: Parsing" #F8FBFA {
+  component "ExecuteParsersCommand" as stageACommand
+  component "ParsersRunnerService" as parserRunner
+  rectangle "Wait for parsing completion\nexit codes + durations" as parserWait
+
+  package "Parsers" #F6F2FB {
+    package "Parser A\nweb-ifc-0.0.68" #FFFFFF {
+      component "Application\n_external/web-ifc-0.0.68/run.sh" as webIfcApp
+      component "Parsing library\nweb-ifc" as webIfcLib
+      component "Environment\nNode.js runtime" as webIfcEnv
+    }
+
+    package "Parser B\nifcopenshell-0.8.4" #FFFFFF {
+      component "Application\n_external/ifcopenshell-0.8.4/run.sh" as ifcOpenApp
+      component "Parsing library\nifcopenshell" as ifcOpenLib
+      component "Environment\nPython runtime" as ifcOpenEnv
+    }
+
+    package "Parser C\nifc-lite-2.1.3" #FFFFFF {
+      component "Application\n_external/ifc-lite-2.1.3/run.sh" as ifcLiteApp
+      component "Parsing library\n@ifc-lite/parser" as ifcLiteLib
+      component "Environment\nNode.js runtime" as ifcLiteEnv
+    }
+  }
+
+  folder "Input files\n_ifc-input/<dataset>/*.ifc" as inputFiles
+  artifact "Parsing results - web-ifc\n_ifc-output/<exp>/web-ifc-0.0.68/<file>/<file>.json" as webIfcJson
+  artifact "Parsing results - ifcopenshell\n_ifc-output/<exp>/ifcopenshell-0.8.4/<file>/<file>.json" as ifcOpenJson
+  artifact "Parsing results - ifc-lite\n_ifc-output/<exp>/ifc-lite-2.1.3/<file>/<file>.json" as ifcLiteJson
+}
+
+package "STAGE B: Screenshot Generation" #F8FBFA {
+  component "GenerateScreenshotsCommand" as stageBCommand
+  component "GeometryRendererService" as geometryService
+  component "WebBrowserService" as browserService
+
+  package "Geometry renderer runtime" #FFF7EA {
+    component "Local HTTP server\nExpress serving geometry-renderer/public" as geometryHttp
+    component "Renderer page\ngeometry-renderer/public/index.html" as geometryUi
+    component "Headless browser\nPuppeteer + Chromium" as headlessBrowser
+    rectangle "window.addMesh()\nwindow.setView()" as browserActions
+  }
+
+  folder "Parser JSON outputs\nread geometries from Stage A" as parserJsonInput
+  artifact "Rendered views - web-ifc\nfront, left, right, top, perspective PNGs" as webIfcPngs
+  artifact "Rendered views - ifcopenshell\nfront, left, right, top, perspective PNGs" as ifcOpenPngs
+  artifact "Rendered views - ifc-lite\nfront, left, right, top, perspective PNGs" as ifcLitePngs
+}
+
+package "STAGE C: Compare JSON Results" #F8FBFA {
+  component "CompareResultsCommand" as stageCCommand
+  component "ComparisonService" as comparisonService
+  folder "Parser JSON outputs" as parserJsonCompare
+  artifact "Shared output contract\ndocs/output-schema.json\n+\ndocs/OUTPUT_FORMAT.md" as outputContract
+
+  rectangle "Metadata comparison" as metadataCompare
+  rectangle "Summary comparison" as summaryCompare
+  rectangle "Spatial tree comparison" as treeCompare
+  rectangle "Geometry comparison" as geometryCompare
+  artifact "ComparisonResult[] in memory\nmetadata + summary + tree + geometry" as comparisonMemory
+}
+
+package "STAGE D: Compare Images" #F8FBFA {
+  component "CompareImagesCommand" as stageDCommand
+  component "ImageComparerService" as imageService
+  folder "Rendered views from all parsers" as renderedViewInput
+  artifact "ComparisonResult[] from Stage C" as comparisonInput
+
+  rectangle "Build parser pairs\nA/B, A/C, B/C..." as parserPairs
+  rectangle "Compare views\nfront, left, right, top, perspective" as compareViews
+  artifact "Diff PNGs\n_comparison/<file>/<pair>/<view>-diff.png" as diffPngs
+  artifact "Default pair combined PNGs\n<view>-combined.png" as combinedPngs
+  artifact "comparison.images\nparserOptions + views + pairComparisons" as imageMetrics
+}
+
+package "STAGE E: Generate Reports" #F8FBFA {
+  component "GenerateReportCommand" as stageECommand
+  component "ReportGeneratorService" as reportService
+  artifact "ComparisonResult[] with image metrics" as reportInput
+  folder "Diff PNG assets\n_comparison/<file>/<pair>/" as diffAssetInput
+
+  artifact "comparison-report.json" as reportJson
+  artifact "comparison-report.html" as reportHtml
+  artifact "index.html" as reportIndex
+  folder "Per-file report directory\n_ifc-output/<exp>/_comparison/<file>/" as reportDir
+  folder "Experiment root\n_ifc-output/<exp>/" as experimentRoot
+}
+
+cli --> main
+main --> app
+app --> root
+root --> stageACommand
+stageACommand --> parserRunner
+inputFiles --> parserRunner
+parserRunner --> webIfcApp
+parserRunner --> ifcOpenApp
+parserRunner --> ifcLiteApp
+webIfcApp --> webIfcLib
+webIfcLib --> webIfcEnv
+ifcOpenApp --> ifcOpenLib
+ifcOpenLib --> ifcOpenEnv
+ifcLiteApp --> ifcLiteLib
+ifcLiteLib --> ifcLiteEnv
+webIfcApp --> webIfcJson
+ifcOpenApp --> ifcOpenJson
+ifcLiteApp --> ifcLiteJson
+parserRunner --> parserWait
+parserWait --> stageBCommand
+
+stageBCommand --> geometryService
+stageBCommand --> browserService
+geometryService --> geometryHttp
+geometryHttp --> geometryUi
+browserService --> headlessBrowser
+headlessBrowser --> geometryUi
+geometryUi --> browserActions
+parserJsonInput --> browserActions
+browserActions --> webIfcPngs
+browserActions --> ifcOpenPngs
+browserActions --> ifcLitePngs
+stageBCommand --> stageCCommand
+
+stageCCommand --> comparisonService
+parserJsonCompare --> comparisonService
+outputContract --> comparisonService
+comparisonService --> metadataCompare
+comparisonService --> summaryCompare
+comparisonService --> treeCompare
+comparisonService --> geometryCompare
+metadataCompare --> comparisonMemory
+summaryCompare --> comparisonMemory
+treeCompare --> comparisonMemory
+geometryCompare --> comparisonMemory
+comparisonMemory --> stageDCommand
+
+stageDCommand --> imageService
+renderedViewInput --> imageService
+comparisonInput --> imageService
+imageService --> parserPairs
+imageService --> compareViews
+parserPairs --> diffPngs
+compareViews --> diffPngs
+compareViews --> combinedPngs
+imageService --> imageMetrics
+imageMetrics --> stageECommand
+
+stageECommand --> reportService
+reportInput --> reportService
+diffAssetInput --> reportService
+reportService --> reportJson
+reportService --> reportHtml
+reportService --> reportIndex
+reportJson --> reportDir
+reportHtml --> reportDir
+reportIndex --> experimentRoot
+@enduml

@@ -3,7 +3,20 @@ import * as fs from "fs";
 import * as path from "path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
-import { ImageViewComparison } from "../types/comparison.types";
+import {
+  ImageComparison,
+  ImageParserPairComparison,
+  ImageParserOption,
+  ImageViewComparison,
+} from "../types/comparison.types";
+import {
+  getCanonicalParserPairKey,
+  getParserPairDirectoryName,
+} from "../utils/parser-ids";
+
+type ParserImageInput = ImageParserOption & {
+  resultDir: string;
+};
 
 @Injectable()
 export class ImageComparerService {
@@ -116,75 +129,57 @@ export class ImageComparerService {
     return results;
   }
 
-  /**
-   * Create a combined comparison image with all three images side by side
-   */
-  createCombinedImage(
-    imagePathA: string,
-    imagePathB: string,
-    diffImagePath: string,
-    outputPath: string,
-  ): void {
-    if (
-      !fs.existsSync(imagePathA) ||
-      !fs.existsSync(imagePathB) ||
-      !fs.existsSync(diffImagePath)
-    ) {
-      return;
+  buildPairwiseComparisons(
+    parsers: Array<ParserImageInput>,
+    diffOutputDir: string,
+    views: Array<string>,
+  ): ImageComparison {
+    const parserOptions: Array<ImageParserOption> = parsers.map(
+      ({ parserId, parserName, parserVersion }) => ({
+        parserId,
+        parserName,
+        parserVersion,
+      }),
+    );
+
+    if (parsers.length < 2) {
+      return {
+        views: [],
+        parserOptions,
+      };
     }
 
-    const img1 = PNG.sync.read(fs.readFileSync(imagePathA));
-    const img2 = PNG.sync.read(fs.readFileSync(imagePathB));
-    const imgDiff = PNG.sync.read(fs.readFileSync(diffImagePath));
+    const pairComparisons: Array<ImageParserPairComparison> = [];
 
-    const { width, height } = img1;
-    const gap = 4;
-    const combinedWidth = width * 3 + gap * 2;
+    for (let i = 0; i < parsers.length - 1; i++) {
+      for (let j = i + 1; j < parsers.length; j++) {
+        const parserA = parsers[i];
+        const parserB = parsers[j];
+        const pairDiffOutputDir = path.join(
+          diffOutputDir,
+          getParserPairDirectoryName(parserA.parserId, parserB.parserId),
+        );
 
-    const combined = new PNG({ width: combinedWidth, height });
-
-    // Fill with gray background
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < combinedWidth; x++) {
-        const idx = (combinedWidth * y + x) << 2;
-        combined.data[idx] = 40;
-        combined.data[idx + 1] = 40;
-        combined.data[idx + 2] = 40;
-        combined.data[idx + 3] = 255;
+        pairComparisons.push({
+          pairKey: getCanonicalParserPairKey(parserA.parserId, parserB.parserId),
+          parserIds: [parserA.parserId, parserB.parserId] as [string, string],
+          views: this.compareAllViews(
+            parserA.resultDir,
+            parserB.resultDir,
+            pairDiffOutputDir,
+            views,
+          ),
+        });
       }
     }
 
-    // Copy images
-    this.copyImageRegion(img1, combined, 0, 0);
-    this.copyImageRegion(img2, combined, width + gap, 0);
-    this.copyImageRegion(imgDiff, combined, width * 2 + gap * 2, 0);
-
-    const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-    fs.writeFileSync(outputPath, PNG.sync.write(combined));
+    return {
+      views: pairComparisons[0]?.views ?? [],
+      parserOptions,
+      defaultLeftParserId: parsers[0].parserId,
+      defaultRightParserId: parsers[1].parserId,
+      pairComparisons,
+    };
   }
 
-  /**
-   * Copy a region from source PNG to destination PNG
-   */
-  private copyImageRegion(
-    src: PNG,
-    dest: PNG,
-    destX: number,
-    destY: number,
-  ): void {
-    for (let y = 0; y < src.height; y++) {
-      for (let x = 0; x < src.width; x++) {
-        const srcIdx = (src.width * y + x) << 2;
-        const destIdx = (dest.width * (destY + y) + (destX + x)) << 2;
-
-        dest.data[destIdx] = src.data[srcIdx];
-        dest.data[destIdx + 1] = src.data[srcIdx + 1];
-        dest.data[destIdx + 2] = src.data[srcIdx + 2];
-        dest.data[destIdx + 3] = src.data[srcIdx + 3];
-      }
-    }
-  }
 }

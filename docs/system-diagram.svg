@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2300" viewBox="0 0 1600 2300" role="img" aria-labelledby="title desc">
+  <title id="title">IFC Parser Evaluator - Stage-Oriented System Diagram</title>
+  <desc id="desc">Stage-oriented architecture diagram for the IFC parser evaluator, showing CLI orchestration, parser execution, screenshot generation, JSON comparison, image comparison, and report generation without Docker.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f5f7fa; }
+      .stage { fill: #fcfdfd; stroke: #c9d4de; stroke-width: 2; rx: 22; ry: 22; }
+      .group { fill: #f8fbfa; stroke: #d7e0e8; stroke-width: 1.5; rx: 18; ry: 18; }
+      .parser-group { fill: #f6f2fb; stroke: #d9d0e8; stroke-width: 1.5; rx: 18; ry: 18; }
+      .box { fill: #ffffff; stroke: #5e6b76; stroke-width: 1.6; rx: 14; ry: 14; }
+      .box.storage { fill: #eaf3ff; }
+      .box.runtime { fill: #fff7ea; }
+      .box.analysis { fill: #f4f0ff; }
+      .box.success { fill: #edf8f1; }
+      .heading { font: 700 24px Arial, Helvetica, sans-serif; fill: #22303b; }
+      .stage-title { font: 700 23px Arial, Helvetica, sans-serif; fill: #22303b; }
+      .group-title { font: 700 16px Arial, Helvetica, sans-serif; fill: #30414e; }
+      .box-title { font: 700 15px Arial, Helvetica, sans-serif; fill: #24323d; }
+      .box-body { font: 400 13px Arial, Helvetica, sans-serif; fill: #3d4b57; }
+      .box-body-small { font: 400 12px Arial, Helvetica, sans-serif; fill: #4c5a66; }
+      .footer { font: 400 12px Arial, Helvetica, sans-serif; fill: #56636f; }
+      .connector { fill: none; stroke: #556372; stroke-width: 1.8; marker-end: url(#arrow); }
+      .connector-soft { fill: none; stroke: #80909d; stroke-width: 1.5; stroke-dasharray: 7 5; marker-end: url(#arrow-soft); }
+      .stage-arrow { fill: none; stroke: #67ab9f; stroke-width: 7; stroke-linecap: round; marker-end: url(#arrow-green); }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#556372"/>
+    </marker>
+    <marker id="arrow-soft" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#80909d"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <path d="M 0 0 L 14 7 L 0 14 z" fill="#67ab9f"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="2300"/>
+
+  <text class="heading" x="50" y="55">PIPELINE ENTRY</text>
+  <line class="stage-arrow" x1="255" y1="47" x2="1490" y2="47"/>
+  <rect class="stage" x="50" y="75" width="1500" height="140"/>
+
+  <rect class="box" x="80" y="105" width="220" height="72"/>
+  <text class="box-title" x="190" y="132" text-anchor="middle">CLI invocation</text>
+  <text class="box-body" x="190" y="154" text-anchor="middle">ifc-parser-evaluator</text>
+
+  <rect class="box" x="345" y="105" width="220" height="72"/>
+  <text class="box-title" x="455" y="132" text-anchor="middle">main.ts</text>
+  <text class="box-body" x="455" y="154" text-anchor="middle">CommandFactory.run(AppModule)</text>
+
+  <rect class="box" x="610" y="105" width="220" height="72"/>
+  <text class="box-title" x="720" y="132" text-anchor="middle">AppModule</text>
+  <text class="box-body" x="720" y="154" text-anchor="middle">NestJS DI graph</text>
+
+  <rect class="box" x="875" y="105" width="250" height="72"/>
+  <text class="box-title" x="1000" y="132" text-anchor="middle">AppRootCommand</text>
+  <text class="box-body" x="1000" y="154" text-anchor="middle">sequential pipeline orchestrator</text>
+
+  <rect class="box success" x="1170" y="95" width="330" height="92"/>
+  <text class="box-title" x="1335" y="125" text-anchor="middle">Pipeline order</text>
+  <text class="box-body" x="1335" y="149" text-anchor="middle">A. Parsing  B. Screenshots  C. JSON compare</text>
+  <text class="box-body" x="1335" y="170" text-anchor="middle">D. Image compare  E. Report generation</text>
+
+  <line class="connector" x1="300" y1="141" x2="345" y2="141"/>
+  <line class="connector" x1="565" y1="141" x2="610" y2="141"/>
+  <line class="connector" x1="830" y1="141" x2="875" y2="141"/>
+
+  <text class="stage-title" x="50" y="250">STAGE A: Parsing</text>
+  <line class="stage-arrow" x1="255" y1="242" x2="1490" y2="242"/>
+  <rect class="stage" x="50" y="270" width="1500" height="380"/>
+
+  <rect class="box" x="80" y="330" width="230" height="82"/>
+  <text class="box-title" x="195" y="359" text-anchor="middle">ExecuteParsersCommand</text>
+  <text class="box-body" x="195" y="382" text-anchor="middle">starts the parsing stage</text>
+
+  <rect class="box" x="350" y="330" width="240" height="82"/>
+  <text class="box-title" x="470" y="359" text-anchor="middle">ParsersRunnerService</text>
+  <text class="box-body" x="470" y="382" text-anchor="middle">spawns parser wrappers</text>
+
+  <rect class="box storage" x="80" y="450" width="230" height="110"/>
+  <text class="box-title" x="195" y="479" text-anchor="middle">Input files</text>
+  <text class="box-body" x="195" y="503" text-anchor="middle">_ifc-input/&lt;dataset&gt;/*.ifc</text>
+  <text class="box-body-small" x="195" y="525" text-anchor="middle">absolute paths are passed to parsers</text>
+
+  <rect class="box success" x="350" y="450" width="240" height="110"/>
+  <text class="box-title" x="470" y="479" text-anchor="middle">Wait for parsing completion</text>
+  <text class="box-body" x="470" y="503" text-anchor="middle">collect exit code + duration</text>
+  <text class="box-body-small" x="470" y="525" text-anchor="middle">one parser after another</text>
+
+  <rect class="parser-group" x="630" y="310" width="870" height="300"/>
+  <text class="group-title" x="655" y="334">Parsers</text>
+
+  <rect class="box analysis" x="660" y="340" width="250" height="170"/>
+  <text class="box-title" x="785" y="366" text-anchor="middle">Parser A: web-ifc-0.0.68</text>
+  <rect class="box" x="680" y="382" width="210" height="34"/>
+  <text class="box-body-small" x="785" y="404" text-anchor="middle">Application: _external/web-ifc-0.0.68/run.sh</text>
+  <rect class="box" x="680" y="426" width="210" height="34"/>
+  <text class="box-body-small" x="785" y="448" text-anchor="middle">Parsing library: web-ifc</text>
+  <rect class="box" x="680" y="470" width="210" height="34"/>
+  <text class="box-body-small" x="785" y="492" text-anchor="middle">Environment: Node.js runtime</text>
+
+  <rect class="box analysis" x="940" y="340" width="250" height="170"/>
+  <text class="box-title" x="1065" y="366" text-anchor="middle">Parser B: ifcopenshell-0.8.4</text>
+  <rect class="box" x="960" y="382" width="210" height="34"/>
+  <text class="box-body-small" x="1065" y="404" text-anchor="middle">Application: _external/ifcopenshell-0.8.4/run.sh</text>
+  <rect class="box" x="960" y="426" width="210" height="34"/>
+  <text class="box-body-small" x="1065" y="448" text-anchor="middle">Parsing library: ifcopenshell</text>
+  <rect class="box" x="960" y="470" width="210" height="34"/>
+  <text class="box-body-small" x="1065" y="492" text-anchor="middle">Environment: Python runtime</text>
+
+  <rect class="box analysis" x="1220" y="340" width="250" height="170"/>
+  <text class="box-title" x="1345" y="366" text-anchor="middle">Parser C: ifc-lite-2.1.3</text>
+  <rect class="box" x="1240" y="382" width="210" height="34"/>
+  <text class="box-body-small" x="1345" y="404" text-anchor="middle">Application: _external/ifc-lite-2.1.3/run.sh</text>
+  <rect class="box" x="1240" y="426" width="210" height="34"/>
+  <text class="box-body-small" x="1345" y="448" text-anchor="middle">Parsing library: @ifc-lite/parser</text>
+  <rect class="box" x="1240" y="470" width="210" height="34"/>
+  <text class="box-body-small" x="1345" y="492" text-anchor="middle">Environment: Node.js runtime</text>
+
+  <rect class="box storage" x="660" y="530" width="250" height="60"/>
+  <text class="box-body" x="785" y="555" text-anchor="middle">Parsing results - web-ifc</text>
+  <text class="box-body-small" x="785" y="575" text-anchor="middle">_ifc-output/&lt;exp&gt;/web-ifc-0.0.68/&lt;file&gt;/&lt;file&gt;.json</text>
+
+  <rect class="box storage" x="940" y="530" width="250" height="60"/>
+  <text class="box-body" x="1065" y="555" text-anchor="middle">Parsing results - ifcopenshell</text>
+  <text class="box-body-small" x="1065" y="575" text-anchor="middle">_ifc-output/&lt;exp&gt;/ifcopenshell-0.8.4/&lt;file&gt;/&lt;file&gt;.json</text>
+
+  <rect class="box storage" x="1220" y="530" width="250" height="60"/>
+  <text class="box-body" x="1345" y="555" text-anchor="middle">Parsing results - ifc-lite</text>
+  <text class="box-body-small" x="1345" y="575" text-anchor="middle">_ifc-output/&lt;exp&gt;/ifc-lite-2.1.3/&lt;file&gt;/&lt;file&gt;.json</text>
+
+  <line class="connector" x1="310" y1="371" x2="350" y2="371"/>
+  <line class="connector" x1="195" y1="450" x2="195" y2="412"/>
+  <line class="connector" x1="310" y1="505" x2="350" y2="505"/>
+  <line class="connector" x1="590" y1="371" x2="660" y2="371"/>
+  <line class="connector" x1="590" y1="371" x2="940" y2="371"/>
+  <line class="connector" x1="590" y1="371" x2="1220" y2="371"/>
+  <line class="connector" x1="785" y1="510" x2="785" y2="530"/>
+  <line class="connector" x1="1065" y1="510" x2="1065" y2="530"/>
+  <line class="connector" x1="1345" y1="510" x2="1345" y2="530"/>
+
+  <text class="stage-title" x="50" y="690">STAGE B: Screenshot Generation</text>
+  <line class="stage-arrow" x1="390" y1="682" x2="1490" y2="682"/>
+  <rect class="stage" x="50" y="710" width="1500" height="380"/>
+
+  <rect class="box" x="80" y="780" width="230" height="82"/>
+  <text class="box-title" x="195" y="809" text-anchor="middle">GenerateScreenshotsCommand</text>
+  <text class="box-body" x="195" y="832" text-anchor="middle">runs local rendering stage</text>
+
+  <rect class="box" x="350" y="760" width="250" height="82"/>
+  <text class="box-title" x="475" y="789" text-anchor="middle">GeometryRendererService</text>
+  <text class="box-body" x="475" y="812" text-anchor="middle">starts local HTTP server</text>
+
+  <rect class="box" x="350" y="860" width="250" height="82"/>
+  <text class="box-title" x="475" y="889" text-anchor="middle">WebBrowserService</text>
+  <text class="box-body" x="475" y="912" text-anchor="middle">drives Puppeteer screenshots</text>
+
+  <rect class="box storage" x="80" y="900" width="230" height="110"/>
+  <text class="box-title" x="195" y="929" text-anchor="middle">Parser JSON outputs</text>
+  <text class="box-body" x="195" y="953" text-anchor="middle">read geometries from Stage A</text>
+  <text class="box-body-small" x="195" y="975" text-anchor="middle">one JSON file per parser per IFC file</text>
+
+  <rect class="group" x="640" y="740" width="820" height="190"/>
+  <text class="group-title" x="665" y="764">Geometry renderer runtime</text>
+
+  <rect class="box runtime" x="670" y="775" width="220" height="60"/>
+  <text class="box-title" x="780" y="801" text-anchor="middle">Local HTTP server</text>
+  <text class="box-body-small" x="780" y="821" text-anchor="middle">Express serving geometry-renderer/public</text>
+
+  <rect class="box runtime" x="930" y="775" width="250" height="60"/>
+  <text class="box-title" x="1055" y="801" text-anchor="middle">Renderer page</text>
+  <text class="box-body-small" x="1055" y="821" text-anchor="middle">geometry-renderer/public/index.html</text>
+
+  <rect class="box runtime" x="1220" y="775" width="210" height="60"/>
+  <text class="box-title" x="1325" y="801" text-anchor="middle">Headless browser</text>
+  <text class="box-body-small" x="1325" y="821" text-anchor="middle">Puppeteer + Chromium</text>
+
+  <rect class="box runtime" x="930" y="855" width="250" height="55"/>
+  <text class="box-body-small" x="1055" y="878" text-anchor="middle">window.addMesh() + window.setView()</text>
+  <text class="box-body-small" x="1055" y="897" text-anchor="middle">front / left / right / top / perspective</text>
+
+  <rect class="box storage" x="670" y="965" width="220" height="70"/>
+  <text class="box-body" x="780" y="990" text-anchor="middle">Rendered views - web-ifc</text>
+  <text class="box-body-small" x="780" y="1011" text-anchor="middle">front, left, right, top, perspective PNGs</text>
+
+  <rect class="box storage" x="940" y="965" width="250" height="70"/>
+  <text class="box-body" x="1065" y="990" text-anchor="middle">Rendered views - ifcopenshell</text>
+  <text class="box-body-small" x="1065" y="1011" text-anchor="middle">front, left, right, top, perspective PNGs</text>
+
+  <rect class="box storage" x="1220" y="965" width="220" height="70"/>
+  <text class="box-body" x="1330" y="990" text-anchor="middle">Rendered views - ifc-lite</text>
+  <text class="box-body-small" x="1330" y="1011" text-anchor="middle">front, left, right, top, perspective PNGs</text>
+
+  <line class="connector" x1="310" y1="821" x2="350" y2="801"/>
+  <line class="connector" x1="310" y1="821" x2="350" y2="901"/>
+  <line class="connector" x1="600" y1="801" x2="670" y2="801"/>
+  <line class="connector" x1="600" y1="901" x2="1220" y2="805"/>
+  <line class="connector" x1="890" y1="805" x2="930" y2="805"/>
+  <line class="connector" x1="1180" y1="805" x2="1220" y2="805"/>
+  <line class="connector" x1="1055" y1="835" x2="1055" y2="855"/>
+  <line class="connector" x1="310" y1="955" x2="930" y2="882"/>
+  <line class="connector" x1="1055" y1="910" x2="780" y2="965"/>
+  <line class="connector" x1="1055" y1="910" x2="1065" y2="965"/>
+  <line class="connector" x1="1055" y1="910" x2="1330" y2="965"/>
+
+  <text class="stage-title" x="50" y="1130">STAGE C: Compare JSON Results</text>
+  <line class="stage-arrow" x1="390" y1="1122" x2="1490" y2="1122"/>
+  <rect class="stage" x="50" y="1150" width="1500" height="340"/>
+
+  <rect class="box" x="80" y="1210" width="230" height="82"/>
+  <text class="box-title" x="195" y="1239" text-anchor="middle">CompareResultsCommand</text>
+  <text class="box-body" x="195" y="1262" text-anchor="middle">runs JSON analysis stage</text>
+
+  <rect class="box" x="350" y="1210" width="230" height="82"/>
+  <text class="box-title" x="465" y="1239" text-anchor="middle">ComparisonService</text>
+  <text class="box-body" x="465" y="1262" text-anchor="middle">compares parser outputs</text>
+
+  <rect class="box storage" x="80" y="1330" width="230" height="100"/>
+  <text class="box-title" x="195" y="1359" text-anchor="middle">Parser JSON outputs</text>
+  <text class="box-body" x="195" y="1382" text-anchor="middle">all parser result files for one IFC file</text>
+
+  <rect class="box storage" x="350" y="1330" width="230" height="100"/>
+  <text class="box-title" x="465" y="1359" text-anchor="middle">Shared output contract</text>
+  <text class="box-body-small" x="465" y="1382" text-anchor="middle">docs/output-schema.json</text>
+  <text class="box-body-small" x="465" y="1401" text-anchor="middle">docs/OUTPUT_FORMAT.md</text>
+
+  <rect class="box analysis" x="650" y="1210" width="240" height="72"/>
+  <text class="box-title" x="770" y="1238" text-anchor="middle">Metadata comparison</text>
+  <text class="box-body-small" x="770" y="1260" text-anchor="middle">schemaVersion, timestamps</text>
+
+  <rect class="box analysis" x="920" y="1210" width="240" height="72"/>
+  <text class="box-title" x="1040" y="1238" text-anchor="middle">Summary comparison</text>
+  <text class="box-body-small" x="1040" y="1260" text-anchor="middle">entity totals + counts by type</text>
+
+  <rect class="box analysis" x="650" y="1310" width="240" height="72"/>
+  <text class="box-title" x="770" y="1338" text-anchor="middle">Spatial tree comparison</text>
+  <text class="box-body-small" x="770" y="1360" text-anchor="middle">node counts + tree differences</text>
+
+  <rect class="box analysis" x="920" y="1310" width="240" height="72"/>
+  <text class="box-title" x="1040" y="1338" text-anchor="middle">Geometry comparison</text>
+  <text class="box-body-small" x="1040" y="1360" text-anchor="middle">vertices, triangles, matrices</text>
+
+  <rect class="box success" x="1190" y="1245" width="250" height="120"/>
+  <text class="box-title" x="1315" y="1275" text-anchor="middle">ComparisonResult[] in memory</text>
+  <text class="box-body" x="1315" y="1299" text-anchor="middle">metadata + summary + tree + geometry</text>
+  <text class="box-body-small" x="1315" y="1321" text-anchor="middle">used by Stage D and Stage E</text>
+
+  <line class="connector" x1="310" y1="1251" x2="350" y2="1251"/>
+  <line class="connector" x1="195" y1="1330" x2="195" y2="1292"/>
+  <line class="connector" x1="465" y1="1330" x2="465" y2="1292"/>
+  <line class="connector" x1="580" y1="1251" x2="650" y2="1246"/>
+  <line class="connector" x1="580" y1="1251" x2="920" y2="1246"/>
+  <line class="connector" x1="580" y1="1251" x2="650" y2="1346"/>
+  <line class="connector" x1="580" y1="1251" x2="920" y2="1346"/>
+  <line class="connector" x1="890" y1="1246" x2="1190" y2="1300"/>
+  <line class="connector" x1="1160" y1="1246" x2="1190" y2="1300"/>
+  <line class="connector" x1="890" y1="1346" x2="1190" y2="1300"/>
+  <line class="connector" x1="1160" y1="1346" x2="1190" y2="1300"/>
+
+  <text class="stage-title" x="50" y="1530">STAGE D: Compare Images</text>
+  <line class="stage-arrow" x1="360" y1="1522" x2="1490" y2="1522"/>
+  <rect class="stage" x="50" y="1550" width="1500" height="330"/>
+
+  <rect class="box" x="80" y="1610" width="230" height="82"/>
+  <text class="box-title" x="195" y="1639" text-anchor="middle">CompareImagesCommand</text>
+  <text class="box-body" x="195" y="1662" text-anchor="middle">runs image diff stage</text>
+
+  <rect class="box" x="350" y="1610" width="230" height="82"/>
+  <text class="box-title" x="465" y="1639" text-anchor="middle">ImageComparerService</text>
+  <text class="box-body" x="465" y="1662" text-anchor="middle">builds pairwise image diffs</text>
+
+  <rect class="box storage" x="80" y="1730" width="230" height="100"/>
+  <text class="box-title" x="195" y="1759" text-anchor="middle">Rendered views</text>
+  <text class="box-body" x="195" y="1782" text-anchor="middle">PNG sets from all parsers</text>
+
+  <rect class="box success" x="350" y="1730" width="230" height="100"/>
+  <text class="box-title" x="465" y="1759" text-anchor="middle">ComparisonResult[] input</text>
+  <text class="box-body" x="465" y="1782" text-anchor="middle">Stage C output already in memory</text>
+
+  <rect class="box analysis" x="650" y="1600" width="240" height="72"/>
+  <text class="box-title" x="770" y="1628" text-anchor="middle">Build parser pairs</text>
+  <text class="box-body-small" x="770" y="1650" text-anchor="middle">A/B, A/C, B/C and more</text>
+
+  <rect class="box analysis" x="920" y="1600" width="240" height="72"/>
+  <text class="box-title" x="1040" y="1628" text-anchor="middle">Compare views</text>
+  <text class="box-body-small" x="1040" y="1650" text-anchor="middle">front, left, right, top, perspective</text>
+
+  <rect class="box success" x="1190" y="1600" width="250" height="72"/>
+  <text class="box-title" x="1315" y="1628" text-anchor="middle">Update comparison.images</text>
+  <text class="box-body-small" x="1315" y="1650" text-anchor="middle">views + parserOptions + pairComparisons</text>
+
+  <rect class="box storage" x="650" y="1705" width="240" height="72"/>
+  <text class="box-title" x="770" y="1733" text-anchor="middle">Diff PNGs</text>
+  <text class="box-body-small" x="770" y="1755" text-anchor="middle">_comparison/&lt;file&gt;/&lt;pair&gt;/&lt;view&gt;-diff.png</text>
+
+  <rect class="box storage" x="920" y="1705" width="240" height="72"/>
+  <text class="box-title" x="1040" y="1733" text-anchor="middle">Default pair combined PNGs</text>
+  <text class="box-body-small" x="1040" y="1755" text-anchor="middle">&lt;view&gt;-combined.png</text>
+
+  <line class="connector" x1="310" y1="1651" x2="350" y2="1651"/>
+  <line class="connector" x1="195" y1="1730" x2="195" y2="1692"/>
+  <line class="connector" x1="465" y1="1730" x2="465" y2="1692"/>
+  <line class="connector" x1="580" y1="1651" x2="650" y2="1636"/>
+  <line class="connector" x1="580" y1="1651" x2="920" y2="1636"/>
+  <line class="connector" x1="580" y1="1651" x2="1190" y2="1636"/>
+  <line class="connector" x1="310" y1="1780" x2="920" y2="1636"/>
+  <line class="connector" x1="580" y1="1780" x2="650" y2="1636"/>
+  <line class="connector" x1="770" y1="1672" x2="770" y2="1705"/>
+  <line class="connector" x1="1040" y1="1672" x2="1040" y2="1705"/>
+  <line class="connector" x1="770" y1="1672" x2="1190" y2="1636"/>
+
+  <text class="stage-title" x="50" y="1920">STAGE E: Generate Reports</text>
+  <line class="stage-arrow" x1="380" y1="1912" x2="1490" y2="1912"/>
+  <rect class="stage" x="50" y="1940" width="1500" height="320"/>
+
+  <rect class="box" x="80" y="1990" width="230" height="82"/>
+  <text class="box-title" x="195" y="2019" text-anchor="middle">GenerateReportCommand</text>
+  <text class="box-body" x="195" y="2042" text-anchor="middle">runs report output stage</text>
+
+  <rect class="box" x="350" y="1990" width="230" height="82"/>
+  <text class="box-title" x="465" y="2019" text-anchor="middle">ReportGeneratorService</text>
+  <text class="box-body" x="465" y="2042" text-anchor="middle">serializes reports and HTML</text>
+
+  <rect class="box success" x="80" y="2105" width="230" height="95"/>
+  <text class="box-title" x="195" y="2134" text-anchor="middle">ComparisonResult[] with images</text>
+  <text class="box-body-small" x="195" y="2156" text-anchor="middle">Stage C + Stage D enriched data</text>
+
+  <rect class="box storage" x="350" y="2105" width="230" height="95"/>
+  <text class="box-title" x="465" y="2134" text-anchor="middle">Diff PNG assets</text>
+  <text class="box-body-small" x="465" y="2156" text-anchor="middle">_comparison/&lt;file&gt;/&lt;pair&gt;/</text>
+
+  <rect class="box storage" x="650" y="1985" width="240" height="72"/>
+  <text class="box-title" x="770" y="2013" text-anchor="middle">comparison-report.json</text>
+  <text class="box-body-small" x="770" y="2035" text-anchor="middle">per-file machine-readable report</text>
+
+  <rect class="box storage" x="920" y="1985" width="240" height="72"/>
+  <text class="box-title" x="1040" y="2013" text-anchor="middle">comparison-report.html</text>
+  <text class="box-body-small" x="1040" y="2035" text-anchor="middle">interactive per-file visual report</text>
+
+  <rect class="box storage" x="1190" y="1985" width="240" height="72"/>
+  <text class="box-title" x="1310" y="2013" text-anchor="middle">index.html</text>
+  <text class="box-body-small" x="1310" y="2035" text-anchor="middle">entry page for the whole experiment</text>
+
+  <rect class="box storage" x="650" y="2090" width="510" height="80"/>
+  <text class="box-title" x="905" y="2120" text-anchor="middle">Per-file report directory</text>
+  <text class="box-body" x="905" y="2144" text-anchor="middle">_ifc-output/&lt;experiment&gt;/_comparison/&lt;file&gt;/</text>
+
+  <rect class="box storage" x="1190" y="2090" width="240" height="80"/>
+  <text class="box-title" x="1310" y="2120" text-anchor="middle">Experiment root</text>
+  <text class="box-body" x="1310" y="2144" text-anchor="middle">_ifc-output/&lt;experiment&gt;/</text>
+
+  <line class="connector" x1="310" y1="2031" x2="350" y2="2031"/>
+  <line class="connector" x1="195" y1="2105" x2="195" y2="2072"/>
+  <line class="connector" x1="465" y1="2105" x2="465" y2="2072"/>
+  <line class="connector" x1="580" y1="2031" x2="650" y2="2021"/>
+  <line class="connector" x1="580" y1="2031" x2="920" y2="2021"/>
+  <line class="connector" x1="580" y1="2031" x2="1190" y2="2021"/>
+  <line class="connector" x1="770" y1="2057" x2="770" y2="2090"/>
+  <line class="connector" x1="1040" y1="2057" x2="1040" y2="2090"/>
+  <line class="connector" x1="1310" y1="2057" x2="1310" y2="2090"/>
+
+  <path class="connector-soft" d="M 1000 177 L 1000 300 L 195 300 L 195 330"/>
+  <path class="connector-soft" d="M 470 560 L 470 720 L 195 720 L 195 780"/>
+  <path class="connector-soft" d="M 195 1035 L 195 1130 L 195 1210"/>
+  <path class="connector-soft" d="M 1315 1365 L 1315 1500 L 465 1500 L 465 1610"/>
+  <path class="connector-soft" d="M 1315 1672 L 1315 1890 L 465 1890 L 465 1990"/>
+
+  <text class="footer" x="50" y="2285">Docker intentionally omitted. Parser engines are shown as logical execution components, matching the current CLI pipeline and generated artifacts.</text>
+</svg>

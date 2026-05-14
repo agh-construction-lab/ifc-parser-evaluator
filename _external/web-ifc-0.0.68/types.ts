@@ -20,7 +20,7 @@ export type IfcPropertySet = {
   }>;
 };
 
-// === Output Schema Types (v1.0.0) ===
+// === Output Schema Types (v2.0.0) ===
 
 export type Metadata = {
   parserName: string;
@@ -49,9 +49,13 @@ export type SpatialNode = {
 export type GeometryEntry = {
   ifcClass: string;
   matrix: Array<number>;
-  mesh: {
+  mesh?: {
     positions: Array<number>;
     normals: Array<number>;
+    indices: Array<number>;
+  };
+  lines?: {
+    positions: Array<number>;
     indices: Array<number>;
   };
 };

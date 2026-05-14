@@ -1,6 +1,6 @@
 # IFC Parser Output Format Specification
 
-## Version 1.0.0
+## Version 2.0.0
 
 ## Overview
 
@@ -74,15 +74,33 @@ Object mapping GlobalId to geometry data.
 
 #### Geometry Entry
 
+Each entry MUST contain `ifcClass` and `matrix`, plus **at least one** of `mesh` (triangulated body) or `lines` (polyline / line segments). Entities without renderable geometry should be omitted from `geometries` entirely.
+
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `ifcClass` | string | ✓ | IFC type |
+| `matrix` | number[16] | ✓ | 4x4 transformation matrix (column-major, flat array) |
+| `mesh` | object | — | Triangulated solid body. Present for IFCs with solid representation. |
+| `lines` | object | — | Polyline / line segments. Present for IFCs with curve-based representation (e.g., IFC 4.3 `IfcAlignment*`). |
+
+#### `mesh` sub-object (triangulated body)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
 | `mesh.positions` | number[] | ✓ | Flat vertex positions [x,y,z,...] |
 | `mesh.normals` | number[] | ✓ | Flat vertex normals [nx,ny,nz,...] |
-| `mesh.indices` | integer[] | ✓ | Triangle indices [i1,i2,i3,...] |
-| `matrix` | number[16] | ✓ | 4x4 transformation matrix (column-major, flat array) |
+| `mesh.indices` | integer[] | ✓ | Triangle indices as **triplets** [i1,i2,i3, i4,i5,i6, ...] |
 
-**Note on matrix field**: 
+#### `lines` sub-object (polyline / line segments)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `lines.positions` | number[] | ✓ | Flat vertex positions [x,y,z,...] |
+| `lines.indices` | integer[] | ✓ | Line segment indices as **pairs** [a1,b1, a2,b2, ...] — each pair defines one segment between two vertex indices |
+
+No `normals` in `lines` — line segments do not have surface orientation.
+
+**Note on matrix field**:
 - If positions are in world coordinates (transforms baked in), matrix will be identity `[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]`
 - If positions are in local coordinates, matrix contains the transform to apply
 
@@ -153,6 +171,14 @@ All geometry coordinates MUST be in:
         "indices": [0, 1, 2]
       },
       "matrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    },
+    "3bnbm1o6L2YRA2rXgIN4Hr": {
+      "ifcClass": "IfcAlignment",
+      "lines": {
+        "positions": [0, 0, 0, 10, 0, 0, 20, 1, 0, 30, 3, 0],
+        "indices": [0, 1, 1, 2, 2, 3]
+      },
+      "matrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
     }
   }
 }
@@ -168,6 +194,12 @@ npx ajv validate -s docs/output-schema.json -d output.json
 ```
 
 ## Changelog
+
+### 2.0.0 (2026-05-13)
+- **Breaking:** `GeometryEntry.mesh` is now optional. Each entry must have at least one of `mesh` / `lines`.
+- Added `GeometryEntry.lines` for polyline / curve-based representations (e.g., IFC 4.3 `IfcAlignment*`). Indices are pairs (`[a,b, a,b, ...]`), defining one line segment per pair. No `normals`.
+- Entities without any renderable geometry must be omitted from `geometries` (previously they could appear with empty `mesh.indices`).
+- Motivation: IFC 4.3 alignment / linear positioning encodings are curves, not triangulated bodies. Forcing them into `mesh` produced misleading outputs (empty `indices`, hidden parser disagreements). The new schema makes line-based vs body-based representations explicit and independently measurable.
 
 ### 1.0.0 (2026-01-30)
 - Initial specification
