@@ -2,7 +2,7 @@ import { Command, CommandRunner } from "nest-commander";
 import { Logger } from "@nestjs/common";
 import { GeometryRendererService } from "src/geometry-renderer/geometry-renderer.service";
 import { WebBrowserService } from "src/geometry-renderer/web-browser.service";
-import { computeUnionBoundingBox } from "src/geometry-renderer/bbox.utils";
+import { computeRenderFrames } from "src/geometry-renderer/bbox.utils";
 import * as path from "path";
 import * as fs from "fs";
 
@@ -39,11 +39,10 @@ class GenerateScreenshotsCommand extends CommandRunner {
       this.logger.log("Initializing headless browser...");
       await this.webBrowserService.init(serverUrl);
 
-      // Group result JSONs by IFC file so that we can compute a union bounding box
-      // across all parsers' outputs for the same file. This shared bbox is used by
-      // the renderer for camera framing + centering, ensuring all parser renders
-      // of the same IFC file land in identical pixel coordinates — a prerequisite
-      // for meaningful pixel-by-pixel image comparison downstream.
+      // Group result JSONs by IFC file. Each parser-output gets its own local
+      // bbox (for centering on screen) plus a shared frustum size across all
+      // parsers of the same IFC file (so every render lands at the same zoom).
+      // See computeRenderFrames doc for the rationale.
       const resultFilesByIfc = this.groupResultFilesByIfc(
         outputDir,
         parsers,
@@ -54,17 +53,23 @@ class GenerateScreenshotsCommand extends CommandRunner {
       let totalRendered = 0;
 
       for (const [ifcFileName, jsonFiles] of resultFilesByIfc) {
-        const unionBbox = computeUnionBoundingBox(jsonFiles);
-        if (unionBbox === null) {
+        const frames = computeRenderFrames(jsonFiles);
+        if (frames.size === 0) {
           this.logger.warn(
             `No geometry across any parser for ${ifcFileName} — skipping render`,
           );
           continue;
         }
 
-        await this.webBrowserService.setBoundingBox(unionBbox);
-
         for (const jsonFile of jsonFiles) {
+          const frame = frames.get(jsonFile);
+          if (!frame) {
+            this.logger.warn(
+              `No geometry in ${jsonFile} — skipping render`,
+            );
+            continue;
+          }
+          await this.webBrowserService.setRenderFrame(frame);
           await this.webBrowserService.prepareResultImages(jsonFile);
           totalRendered++;
         }

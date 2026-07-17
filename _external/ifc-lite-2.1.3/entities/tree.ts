@@ -1,4 +1,8 @@
-import { IfcTypeEnumToString, IFC_ENTITY_NAMES } from "@ifc-lite/data";
+import {
+  IfcTypeEnumToString,
+  IFC_ENTITY_NAMES,
+  RelationshipType,
+} from "@ifc-lite/data";
 import type { SpatialNode as IfcLiteSpatialNode } from "@ifc-lite/data";
 import type { IfcDataStore } from "@ifc-lite/parser";
 import {
@@ -20,10 +24,16 @@ class Tree {
     if (!hierarchy) {
       throw new Error("No spatial hierarchy found");
     }
-    return [this.convertNode(hierarchy.project)];
+    const visited = new Set<number>();
+    return [this.convertNode(hierarchy.project, visited)];
   }
 
-  private convertNode(node: IfcLiteSpatialNode): SpatialNode {
+  private convertNode(
+    node: IfcLiteSpatialNode,
+    visited: Set<number>,
+  ): SpatialNode {
+    visited.add(node.expressId);
+
     const ifcClass = IfcTypeEnumToString(node.type);
 
     let globalId = "";
@@ -37,14 +47,25 @@ class Tree {
     const properties = this.extractProperties(node.expressId);
     const quantities = this.extractQuantities(node.expressId);
 
-    // Spatial children (sub-containers)
-    const children: Array<SpatialNode> = node.children.map((child) =>
-      this.convertNode(child),
-    );
+    // Spatial sub-containers (Site/Building/Storey/Space) — already filtered by the library.
+    const children: Array<SpatialNode> = [];
+    for (const child of node.children) {
+      if (visited.has(child.expressId)) continue;
+      children.push(this.convertNode(child, visited));
+    }
 
-    // Contained elements -> also added as children
+    // Directly contained elements via IfcRelContainedInSpatialStructure.
     for (const elementId of node.elements) {
-      children.push(this.buildElementNode(elementId));
+      if (visited.has(elementId)) continue;
+      children.push(this.buildElementNode(elementId, visited));
+    }
+
+    // Non-spatial aggregations (e.g. IfcProject -> IfcRailway in IFC4.3 infrastructure files).
+    // The library's spatial-hierarchy-builder filters Aggregates to spatial-structure types only,
+    // so anything else is missing — pull it in here.
+    for (const aggregatedId of this.getAggregatedChildren(node.expressId)) {
+      if (visited.has(aggregatedId)) continue;
+      children.push(this.buildElementNode(aggregatedId, visited));
     }
 
     return {
@@ -58,7 +79,12 @@ class Tree {
     };
   }
 
-  private buildElementNode(expressId: number): SpatialNode {
+  private buildElementNode(
+    expressId: number,
+    visited: Set<number>,
+  ): SpatialNode {
+    visited.add(expressId);
+
     const entityRef = this.store.entityIndex.byId.get(expressId);
     const rawType = entityRef?.type ?? "Unknown";
     const ifcClass = IFC_ENTITY_NAMES[rawType] ?? rawType;
@@ -76,6 +102,25 @@ class Tree {
     const properties = this.extractProperties(expressId);
     const quantities = this.extractQuantities(expressId);
 
+    // Follow IfcRelAggregates to pick up decomposed parts:
+    // IfcRoof -> IfcSlab, IfcCurtainWall -> IfcMember/IfcPlate, IfcStair -> IfcStairFlight,
+    // IfcRailwayPart -> IfcRailwayPart, etc.
+    const children: Array<SpatialNode> = [];
+    for (const childId of this.getAggregatedChildren(expressId)) {
+      if (visited.has(childId)) continue;
+      children.push(this.buildElementNode(childId, visited));
+    }
+
+    // Follow IfcRelContainedInSpatialStructure as well — needed for spatial-structure types
+    // outside the library's {Site/Building/Storey/Space} filter (e.g. IfcRailway in IFC4.3
+    // infrastructure files contains IfcAlignment via this relation, and IfcRailwayPart
+    // contains IfcTrackElement/IfcEarthworksFill).
+    // Non-spatial-structure entities return an empty list here, so no risk of noise.
+    for (const childId of this.getContainedElements(expressId)) {
+      if (visited.has(childId)) continue;
+      children.push(this.buildElementNode(childId, visited));
+    }
+
     return {
       expressId,
       globalId,
@@ -83,8 +128,24 @@ class Tree {
       name,
       properties,
       quantities,
-      children: [],
+      children,
     };
+  }
+
+  private getAggregatedChildren(expressId: number): Array<number> {
+    return this.store.relationships.getRelated(
+      expressId,
+      RelationshipType.Aggregates,
+      "forward",
+    );
+  }
+
+  private getContainedElements(expressId: number): Array<number> {
+    return this.store.relationships.getRelated(
+      expressId,
+      RelationshipType.ContainsElements,
+      "forward",
+    );
   }
 
   private extractProperties(

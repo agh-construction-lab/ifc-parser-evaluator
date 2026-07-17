@@ -2,6 +2,10 @@
 Chart.defaults.color = '#656d76';
 Chart.defaults.borderColor = '#d0d7de';
 
+// Per-parser palette — matplotlib tab10, kept in sync with ChartExportService
+// so PNG and HTML charts use the same color per parser.
+const PARSER_PALETTE = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
+
 // Initialize charts with data from window.reportData
 (function () {
     const { processingTimeData, vertexData, uniqueVertexData, triangleData } = window.reportData;
@@ -17,7 +21,7 @@ Chart.defaults.borderColor = '#d0d7de';
             datasets: parsers.map((parser, i) => ({
                 label: parser,
                 data: files.map(f => processingTimeData.find(d => d.file === f && d.parser === parser)?.time || 0),
-                backgroundColor: i === 0 ? '#58a6ff' : '#a371f7',
+                backgroundColor: PARSER_PALETTE[i % PARSER_PALETTE.length],
                 borderRadius: 4,
             }))
         },
@@ -44,7 +48,7 @@ Chart.defaults.borderColor = '#d0d7de';
             datasets: vertexData[0]?.parsers.map((parser, i) => ({
                 label: parser,
                 data: vertexData.map(d => d.counts[i] || 0),
-                backgroundColor: i === 0 ? '#58a6ff' : '#a371f7',
+                backgroundColor: PARSER_PALETTE[i % PARSER_PALETTE.length],
                 borderRadius: 4,
             })) || []
         },
@@ -68,7 +72,7 @@ Chart.defaults.borderColor = '#d0d7de';
             datasets: uniqueVertexData[0]?.parsers.map((parser, i) => ({
                 label: parser,
                 data: uniqueVertexData.map(d => d.counts[i] || 0),
-                backgroundColor: i === 0 ? '#58a6ff' : '#a371f7',
+                backgroundColor: PARSER_PALETTE[i % PARSER_PALETTE.length],
                 borderRadius: 4,
             })) || []
         },
@@ -92,7 +96,7 @@ Chart.defaults.borderColor = '#d0d7de';
             datasets: triangleData[0]?.parsers.map((parser, i) => ({
                 label: parser,
                 data: triangleData.map(d => d.counts[i] || 0),
-                backgroundColor: i === 0 ? '#58a6ff' : '#a371f7',
+                backgroundColor: PARSER_PALETTE[i % PARSER_PALETTE.length],
                 borderRadius: 4,
             })) || []
         },
@@ -162,7 +166,7 @@ Chart.defaults.borderColor = '#d0d7de';
                         labels: classData.parsers,
                         datasets: [{
                             data: classData.vertexCounts,
-                            backgroundColor: ['#0969da', '#8250df'],
+                            backgroundColor: PARSER_PALETTE,
                             borderRadius: 4,
                         }]
                     },
@@ -181,7 +185,7 @@ Chart.defaults.borderColor = '#d0d7de';
                         labels: classData.parsers,
                         datasets: [{
                             data: classData.uniqueVertexCounts,
-                            backgroundColor: ['#0969da', '#8250df'],
+                            backgroundColor: PARSER_PALETTE,
                             borderRadius: 4,
                         }]
                     },
@@ -242,6 +246,35 @@ Chart.defaults.borderColor = '#d0d7de';
         image.src = source;
     }
 
+    // Update both data-src-* attributes on an image so the checkbox can later
+    // pick whichever variant is active. Pass-through to setImageSource for the
+    // currently active variant so the visual updates immediately.
+    function setImageVariants(image, cleanSrc, spheresSrc, showSpheres) {
+        if (!image) {
+            return;
+        }
+
+        if (cleanSrc !== undefined) image.dataset.srcClean = cleanSrc || '';
+        if (spheresSrc !== undefined) image.dataset.srcSpheres = spheresSrc || '';
+
+        const active = showSpheres ? (spheresSrc ?? '') : (cleanSrc ?? '');
+        setImageSource(image, active);
+    }
+
+    function isSpheresActive(viewContent) {
+        const section = viewContent.closest('.image-comparison-section');
+        const checkbox = section?.querySelector('.vertex-spheres-checkbox');
+        return Boolean(checkbox?.checked);
+    }
+
+    function updateDiffLabel(diffLabel, cleanPct, spheresPct, showSpheres) {
+        if (!diffLabel) return;
+        if (cleanPct !== undefined) diffLabel.dataset.diffClean = cleanPct;
+        if (spheresPct !== undefined) diffLabel.dataset.diffSpheres = spheresPct;
+        const pct = showSpheres ? (spheresPct ?? '') : (cleanPct ?? '');
+        diffLabel.textContent = `Difference (${pct})`;
+    }
+
     function updateViewContent(viewContent, leftParserId, rightParserId) {
         const pairData = parseViewPairs(viewContent);
         const selectedPair = pairData[leftParserId]?.[rightParserId];
@@ -249,6 +282,8 @@ Chart.defaults.borderColor = '#d0d7de';
         if (!selectedPair) {
             return;
         }
+
+        const showSpheres = isSpheresActive(viewContent);
 
         const parserALabel = viewContent.querySelector('.parser-a-label');
         const parserBLabel = viewContent.querySelector('.parser-b-label');
@@ -263,15 +298,40 @@ Chart.defaults.borderColor = '#d0d7de';
 
         if (parserALabel) parserALabel.textContent = selectedPair.leftLabel;
         if (parserBLabel) parserBLabel.textContent = selectedPair.rightLabel;
-        if (diffLabel) diffLabel.textContent = `Difference (${selectedPair.diffPercentage})`;
+        updateDiffLabel(
+            diffLabel,
+            selectedPair.diffPercentage,
+            selectedPair.spheresDiffPercentage,
+            showSpheres,
+        );
         if (parserASliderLabel) parserASliderLabel.textContent = selectedPair.leftLabel;
         if (parserBSliderLabel) parserBSliderLabel.textContent = selectedPair.rightLabel;
 
-        setImageSource(parserAImage, selectedPair.imageAPath);
-        setImageSource(parserBImage, selectedPair.imageBPath);
-        setImageSource(diffImage, selectedPair.diffImagePath);
-        setImageSource(parserAOnionImage, selectedPair.imageAPath);
-        setImageSource(parserBOnionImage, selectedPair.imageBPath);
+        setImageVariants(parserAImage, selectedPair.imageAPath, selectedPair.spheresImageAPath, showSpheres);
+        setImageVariants(parserBImage, selectedPair.imageBPath, selectedPair.spheresImageBPath, showSpheres);
+        setImageVariants(diffImage, selectedPair.diffImagePath, selectedPair.spheresDiffImagePath, showSpheres);
+        setImageVariants(parserAOnionImage, selectedPair.imageAPath, selectedPair.spheresImageAPath, showSpheres);
+        setImageVariants(parserBOnionImage, selectedPair.imageBPath, selectedPair.spheresImageBPath, showSpheres);
+    }
+
+    // Apply the current spheres-toggle state to every image and diff label in a
+    // section. Used both for the change handler and during the initial wire-up
+    // (so the data-src-* fallback applies even before any parser switch).
+    function applyVertexSpheresToggle(section) {
+        const checkbox = section.querySelector('.vertex-spheres-checkbox');
+        const showSpheres = Boolean(checkbox?.checked);
+
+        section.querySelectorAll('img[data-src-clean], img[data-src-spheres]').forEach((img) => {
+            const src = showSpheres ? (img.dataset.srcSpheres || '') : (img.dataset.srcClean || '');
+            setImageSource(img, src);
+        });
+
+        section.querySelectorAll('.diff-label').forEach((label) => {
+            const pct = showSpheres
+                ? (label.dataset.diffSpheres || '')
+                : (label.dataset.diffClean || '');
+            if (pct) label.textContent = `Difference (${pct})`;
+        });
     }
 
     function updateViewTabStatus(section, leftParserId, rightParserId) {
@@ -347,6 +407,12 @@ Chart.defaults.borderColor = '#d0d7de';
             });
         });
 
+        const spheresCheckbox = section.querySelector('.vertex-spheres-checkbox');
+        if (spheresCheckbox) {
+            spheresCheckbox.addEventListener('change', () => applyVertexSpheresToggle(section));
+        }
+
         applySelectedParserPair(section);
+        applyVertexSpheresToggle(section);
     });
 })();

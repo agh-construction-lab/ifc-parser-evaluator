@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as fs from "fs";
 import puppeteer, { Browser, Page } from "puppeteer";
-import { BoundingBox } from "./bbox.utils";
+import { RenderFrame } from "./bbox.utils";
 
 const RENDER_VIEWS = ["front", "left", "right", "top", "perspective"] as const;
 type ViewType = (typeof RENDER_VIEWS)[number];
@@ -11,9 +11,12 @@ declare global {
   interface Window {
     addMesh: (data: unknown) => void;
     setView: (view: string) => void;
-    setBoundingBox: (bbox: BoundingBox | null) => void;
+    setRenderFrame: (frame: RenderFrame | null) => void;
+    setShowVertexSpheres: (visible: boolean) => void;
   }
 }
+
+const SPHERES_SUFFIX = "--spheres";
 
 @Injectable()
 export class WebBrowserService {
@@ -72,22 +75,21 @@ export class WebBrowserService {
   }
 
   /**
-   * Set a shared bounding box used by addMesh for camera framing and centering.
+   * Set the render frame used by addMesh for camera framing and centering.
    * Pass null to revert to per-geometry computation.
    *
-   * When set, every subsequent addMesh call will use this bbox instead of computing
-   * its own — guaranteeing that all parser renders of the same IFC file land in the
-   * same camera frame, enabling meaningful pixel-by-pixel comparison even when parsers
-   * disagree about which entities to include.
+   * The frame's localBbox is used to center this parser's geometry on screen;
+   * its frustumSize is shared across parsers of the same IFC file so every
+   * render lands at the same zoom level.
    */
-  async setBoundingBox(bbox: BoundingBox | null): Promise<void> {
+  async setRenderFrame(frame: RenderFrame | null): Promise<void> {
     if (this.page === null) {
       throw new Error("Page is not initialized");
     }
 
-    await this.page.evaluate((b) => {
-      window.setBoundingBox(b);
-    }, bbox);
+    await this.page.evaluate((f) => {
+      window.setRenderFrame(f);
+    }, frame);
   }
 
   /**
@@ -104,6 +106,21 @@ export class WebBrowserService {
       },
       geometriesData as Parameters<typeof this.page.evaluate>[1],
     );
+  }
+
+  /**
+   * Toggle visibility of duplicate-vertex spheres in the current scene.
+   * Used to render two screenshot variants per view (clean + with spheres)
+   * without re-uploading geometry.
+   */
+  async setShowVertexSpheres(visible: boolean): Promise<void> {
+    if (this.page === null) {
+      throw new Error("Page is not initialized");
+    }
+
+    await this.page.evaluate((v) => {
+      window.setShowVertexSpheres(v);
+    }, visible);
   }
 
   /**
@@ -160,6 +177,8 @@ export class WebBrowserService {
     // Get directory path (JSON is in subdirectory named after IFC file)
     const resultDir = resultFilePath.substring(0, resultFilePath.lastIndexOf("/"));
 
+    // Pass 1: clean (canonical filename `<view>.png`), spheres hidden.
+    await this.setShowVertexSpheres(false);
     for (const view of RENDER_VIEWS) {
       await this.setView(view);
       const imagePath = `${resultDir}/${view}.png`;
@@ -167,17 +186,34 @@ export class WebBrowserService {
       this.logger.debug(`Screenshot saved: ${imagePath}`);
     }
 
+    // Pass 2: with vertex-duplicate spheres (`<view>--spheres.png`).
+    await this.setShowVertexSpheres(true);
+    for (const view of RENDER_VIEWS) {
+      await this.setView(view);
+      const imagePath = `${resultDir}/${view}${SPHERES_SUFFIX}.png`;
+      await this.takeScreenshot(imagePath);
+      this.logger.debug(`Screenshot saved: ${imagePath}`);
+    }
+
     this.logger.log(
-      `Generated ${RENDER_VIEWS.length} screenshots for ${resultFilePath}`,
+      `Generated ${RENDER_VIEWS.length * 2} screenshots (clean + spheres) for ${resultFilePath}`,
     );
   }
 
   /**
-   * Get paths to generated images for a result file
+   * Get paths to generated images for a result file (clean variant).
    */
   getImagesPaths(resultFilePath: string): Array<string> {
     const resultDir = resultFilePath.substring(0, resultFilePath.lastIndexOf("/"));
     return RENDER_VIEWS.map((view) => `${resultDir}/${view}.png`);
+  }
+
+  /**
+   * Get paths to generated images for a result file (with vertex spheres).
+   */
+  getSpheresImagesPaths(resultFilePath: string): Array<string> {
+    const resultDir = resultFilePath.substring(0, resultFilePath.lastIndexOf("/"));
+    return RENDER_VIEWS.map((view) => `${resultDir}/${view}${SPHERES_SUFFIX}.png`);
   }
 
   getViewName(viewIndex: number): ViewType {
@@ -185,4 +221,4 @@ export class WebBrowserService {
   }
 }
 
-export { RENDER_VIEWS, type ViewType };
+export { RENDER_VIEWS, SPHERES_SUFFIX, type ViewType };

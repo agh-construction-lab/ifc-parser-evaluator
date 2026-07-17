@@ -477,6 +477,26 @@ th {
     font-size: 0.875rem;
 }
 
+.vertex-spheres-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.vertex-spheres-toggle input[type="checkbox"] {
+    accent-color: #ff3344;
+    cursor: pointer;
+}
+
 .view-tabs {
     display: flex;
     gap: 0.5rem;

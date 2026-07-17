@@ -216,6 +216,10 @@
                                 </select>
                             </label>
                         </div>
+                        <label class="vertex-spheres-toggle">
+                            <input type="checkbox" class="vertex-spheres-checkbox">
+                            <span>Show vertex-duplicate spheres</span>
+                        </label>
                         <div class="view-tabs">
                             {{#each visualComparison.views}}
                                 <button class="view-tab {{#if @first}}active{{/if}}" data-view="{{this.viewId}}">
@@ -230,22 +234,22 @@
                                 <div class="image-comparison-grid">
                                     <div class="image-comparison-card">
                                         <div class="label parser-a-label">{{this.defaultLeftLabel}}</div>
-                                        <img class="parser-a-image" src="{{this.defaultImageAPath}}" alt="Result A" onerror="this.style.display='none'">
+                                        <img class="parser-a-image" src="{{this.defaultImageAPath}}" data-src-clean="{{this.defaultImageAPath}}" data-src-spheres="{{this.defaultSpheresImageAPath}}" alt="Result A" onerror="this.style.display='none'">
                                     </div>
                                     <div class="image-comparison-card">
                                         <div class="label parser-b-label">{{this.defaultRightLabel}}</div>
-                                        <img class="parser-b-image" src="{{this.defaultImageBPath}}" alt="Result B" onerror="this.style.display='none'">
+                                        <img class="parser-b-image" src="{{this.defaultImageBPath}}" data-src-clean="{{this.defaultImageBPath}}" data-src-spheres="{{this.defaultSpheresImageBPath}}" alt="Result B" onerror="this.style.display='none'">
                                     </div>
                                     <div class="image-comparison-card">
-                                        <div class="label diff-label">Difference ({{this.defaultDiffPercentage}})</div>
-                                        <img class="diff-image" src="{{this.defaultDiffImagePath}}" alt="Diff" onerror="this.style.display='none'">
+                                        <div class="label diff-label" data-diff-clean="{{this.defaultDiffPercentage}}" data-diff-spheres="{{this.defaultSpheresDiffPercentage}}">Difference ({{this.defaultDiffPercentage}})</div>
+                                        <img class="diff-image" src="{{this.defaultDiffImagePath}}" data-src-clean="{{this.defaultDiffImagePath}}" data-src-spheres="{{this.defaultSpheresDiffImagePath}}" alt="Diff" onerror="this.style.display='none'">
                                     </div>
                                 </div>
                                 <div class="onion-slider-container">
                                     <div class="label">Onion Skin Comparison</div>
                                     <div class="onion-slider-wrapper">
-                                        <img class="image-a parser-a-onion-image" src="{{this.defaultImageAPath}}" alt="Result A">
-                                        <img class="image-b parser-b-onion-image" src="{{this.defaultImageBPath}}" alt="Result B" id="{{this.onionId}}">
+                                        <img class="image-a parser-a-onion-image" src="{{this.defaultImageAPath}}" data-src-clean="{{this.defaultImageAPath}}" data-src-spheres="{{this.defaultSpheresImageAPath}}" alt="Result A">
+                                        <img class="image-b parser-b-onion-image" src="{{this.defaultImageBPath}}" data-src-clean="{{this.defaultImageBPath}}" data-src-spheres="{{this.defaultSpheresImageBPath}}" alt="Result B" id="{{this.onionId}}">
                                     </div>
                                     <div class="onion-slider-controls">
                                         <span class="slider-label parser-a-slider-label">{{this.defaultLeftLabel}}</span>

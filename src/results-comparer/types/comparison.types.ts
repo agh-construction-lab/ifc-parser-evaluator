@@ -145,6 +145,13 @@ export interface ImageViewComparison {
   pixelDiffCount: number;
   pixelDiffPercentage: number;
   match: boolean;
+  // "Spheres" variant: same view rendered with the vertex-duplicate heatmap visible.
+  // Optional so older JSON reports still parse.
+  spheresImagePaths?: Array<string>;
+  spheresDiffImagePath?: string;
+  spheresPixelDiffCount?: number;
+  spheresPixelDiffPercentage?: number;
+  spheresMatch?: boolean;
 }
 
 export interface ImageParserOption {

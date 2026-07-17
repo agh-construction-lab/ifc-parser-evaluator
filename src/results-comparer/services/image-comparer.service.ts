@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
+import { SPHERES_SUFFIX } from "../../geometry-renderer/web-browser.service";
 import {
   ImageComparison,
   ImageParserPairComparison,
@@ -14,6 +15,14 @@ import {
   getParserPairDirectoryName,
 } from "../utils/parser-ids";
 
+type SinglePairDiffResult = {
+  imagePaths: [string, string];
+  diffImagePath?: string;
+  pixelDiffCount: number;
+  pixelDiffPercentage: number;
+  match: boolean;
+};
+
 type ParserImageInput = ImageParserOption & {
   resultDir: string;
 };
@@ -23,19 +32,18 @@ export class ImageComparerService {
   private readonly logger = new Logger(ImageComparerService.name);
 
   /**
-   * Compare images from two parser outputs for a specific view
+   * Compare a single pair of PNGs and write a diff PNG. Variant-agnostic — used
+   * for both clean and spheres variants.
    */
-  compareImages(
+  private comparePair(
     imagePathA: string,
     imagePathB: string,
     diffOutputPath: string,
-  ): ImageViewComparison {
-    const viewName = path.basename(diffOutputPath, ".png").replace("-diff", "");
-
+    label: string,
+  ): SinglePairDiffResult {
     if (!fs.existsSync(imagePathA) || !fs.existsSync(imagePathB)) {
-      this.logger.warn(`Missing images for comparison: ${viewName}`);
+      this.logger.warn(`Missing images for comparison: ${label}`);
       return {
-        viewName,
         imagePaths: [imagePathA, imagePathB],
         pixelDiffCount: -1,
         pixelDiffPercentage: -1,
@@ -49,11 +57,9 @@ export class ImageComparerService {
 
       const { width, height } = img1;
 
-      // Check if dimensions match
       if (img1.width !== img2.width || img1.height !== img2.height) {
-        this.logger.warn(`Image dimensions mismatch for ${viewName}`);
+        this.logger.warn(`Image dimensions mismatch for ${label}`);
         return {
-          viewName,
           imagePaths: [imagePathA, imagePathB],
           pixelDiffCount: -1,
           pixelDiffPercentage: -1,
@@ -73,7 +79,6 @@ export class ImageComparerService {
         { threshold: 0.1 },
       );
 
-      // Save difference image
       const diffDir = path.dirname(diffOutputPath);
       if (!fs.existsSync(diffDir)) {
         fs.mkdirSync(diffDir, { recursive: true });
@@ -81,14 +86,13 @@ export class ImageComparerService {
       fs.writeFileSync(diffOutputPath, PNG.sync.write(diff));
 
       const pixelDiffPercentage = (pixelDiffCount / totalPixels) * 100;
-      const match = pixelDiffPercentage < 1; // 1% tolerance threshold
+      const match = pixelDiffPercentage < 1;
 
       this.logger.debug(
-        `${viewName}: ${pixelDiffCount} pixels differ (${pixelDiffPercentage.toFixed(2)}%)`,
+        `${label}: ${pixelDiffCount} pixels differ (${pixelDiffPercentage.toFixed(2)}%)`,
       );
 
       return {
-        viewName,
         imagePaths: [imagePathA, imagePathB],
         diffImagePath: diffOutputPath,
         pixelDiffCount,
@@ -96,15 +100,56 @@ export class ImageComparerService {
         match,
       };
     } catch (error) {
-      this.logger.error(`Error comparing images for ${viewName}: ${error}`);
+      this.logger.error(`Error comparing images for ${label}: ${error}`);
       return {
-        viewName,
         imagePaths: [imagePathA, imagePathB],
         pixelDiffCount: -1,
         pixelDiffPercentage: -1,
         match: false,
       };
     }
+  }
+
+  /**
+   * Compare both image variants (clean + with vertex spheres) for a single view.
+   */
+  compareImages(
+    imagePathA: string,
+    imagePathB: string,
+    diffOutputPath: string,
+  ): ImageViewComparison {
+    const viewName = path.basename(diffOutputPath, ".png").replace("-diff", "");
+
+    const cleanResult = this.comparePair(
+      imagePathA,
+      imagePathB,
+      diffOutputPath,
+      viewName,
+    );
+
+    const spheresImagePathA = withSpheresSuffix(imagePathA);
+    const spheresImagePathB = withSpheresSuffix(imagePathB);
+    const spheresDiffOutputPath = withSpheresSuffix(diffOutputPath);
+    const spheresResult = this.comparePair(
+      spheresImagePathA,
+      spheresImagePathB,
+      spheresDiffOutputPath,
+      `${viewName}${SPHERES_SUFFIX}`,
+    );
+
+    return {
+      viewName,
+      imagePaths: cleanResult.imagePaths,
+      diffImagePath: cleanResult.diffImagePath,
+      pixelDiffCount: cleanResult.pixelDiffCount,
+      pixelDiffPercentage: cleanResult.pixelDiffPercentage,
+      match: cleanResult.match,
+      spheresImagePaths: spheresResult.imagePaths,
+      spheresDiffImagePath: spheresResult.diffImagePath,
+      spheresPixelDiffCount: spheresResult.pixelDiffCount,
+      spheresPixelDiffPercentage: spheresResult.pixelDiffPercentage,
+      spheresMatch: spheresResult.match,
+    };
   }
 
   /**
@@ -182,4 +227,11 @@ export class ImageComparerService {
     };
   }
 
+}
+
+function withSpheresSuffix(filePath: string): string {
+  const dir = path.dirname(filePath);
+  const ext = path.extname(filePath);
+  const base = path.basename(filePath, ext);
+  return path.join(dir, `${base}${SPHERES_SUFFIX}${ext}`);
 }

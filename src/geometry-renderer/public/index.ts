@@ -23,21 +23,32 @@ type GeometryEntry = {
   matrix?: number[];
 }
 
-type UnifiedBoundingBox = {
-  min: [number, number, number];
-  max: [number, number, number];
+type RenderFrame = {
+  localBbox: {
+    min: [number, number, number];
+    max: [number, number, number];
+  };
+  frustumSize: number;
 };
 
 declare global {
   interface Window {
     setView: (view: string) => void;
     addMesh: (geometriesData: Record<string, GeometryEntry>) => void;
-    setBoundingBox: (bbox: UnifiedBoundingBox | null) => void;
+    setRenderFrame: (frame: RenderFrame | null) => void;
+    setShowVertexSpheres: (visible: boolean) => void;
     loadSampleGeometry: () => void;
   }
 }
 
 const BACKGROUND_COLOR = "#1a1a1a";
+
+// Base radius of the red spheres rendered at vertex positions.
+// Each sphere is scaled up by the number of times its (x,y,z) is duplicated,
+// so increasing this value uniformly enlarges the duplicate-vertex heatmap.
+// Tune freely — see README "Configuration".
+const VERTEX_SPHERE_SIZE = 0.01;
+const VERTEX_SPHERE_COLOR = 0xff3344;
 
 const CAMERA_POSITIONS: Record<string, [number, number, number]> = {
   front: [0, 0, 1000],
@@ -112,10 +123,16 @@ controls.dampingFactor = 0.05;
 // === State ===
 let currentMesh = null;
 let animationId = null;
-// Optional unified bbox shared across parsers for the same IFC file.
-// When set (via window.setBoundingBox), addMesh uses it for centering + camera framing
-// instead of computing from local geometry — ensuring consistent renders across parsers.
-let unifiedBoundingBox = null;
+// Optional render frame supplied per parser-output for the same IFC file.
+// `localBbox` centers this parser's geometry on screen; `frustumSize` is shared
+// across parsers of the same IFC file so every render lands at the same zoom.
+// When null, addMesh falls back to computing both from the local geometry.
+let renderFrame = null;
+// Reference to the vertex-duplicate spheres group inside the current mesh.
+// Kept on the module scope so window.setShowVertexSpheres can flip visibility
+// between successive screenshots without re-rendering the mesh.
+let vertexSpheresGroup = null;
+let showVertexSpheres = true;
 
 // === Animation Loop ===
 function animate() {
@@ -140,9 +157,20 @@ window.addEventListener('resize', () => {
   renderer.setSize(width, height);
 });
 
-// === Shared bbox control ===
-window.setBoundingBox = function (bbox) {
-  unifiedBoundingBox = bbox;
+// === Render frame control ===
+window.setRenderFrame = function (frame) {
+  renderFrame = frame;
+};
+
+// === Vertex-spheres visibility control ===
+// Flips visibility of the duplicate-vertex heatmap. Used by the screenshot
+// pipeline to render two variants per view (clean + with spheres) without
+// re-uploading geometry to the page.
+window.setShowVertexSpheres = function (visible) {
+  showVertexSpheres = visible;
+  if (vertexSpheresGroup !== null) {
+    vertexSpheresGroup.visible = visible;
+  }
 };
 
 // === View Control ===
@@ -180,6 +208,7 @@ window.addMesh = function (geometriesData) {
   if (currentMesh !== null) {
     scene.remove(currentMesh);
     currentMesh = null;
+    vertexSpheresGroup = null;
   }
 
   const entityKeys = Object.keys(geometriesData);
@@ -242,12 +271,15 @@ window.addMesh = function (geometriesData) {
 
   if (combinedMeshGeometry === null && combinedLinesGeometry === null) return;
 
-  // Determine bounding box: prefer unified (shared across parsers) if set, else compute local.
+  // Determine the bounding box used for centering this geometry. If a render
+  // frame is supplied, use its localBbox (each parser-output ships its own,
+  // computed pre-renderer in bbox.utils). Otherwise fall back to computing
+  // from the loaded geometry.
   let boundsBox;
-  if (unifiedBoundingBox !== null) {
+  if (renderFrame !== null) {
     boundsBox = new THREE.Box3(
-      new THREE.Vector3().fromArray(unifiedBoundingBox.min),
-      new THREE.Vector3().fromArray(unifiedBoundingBox.max),
+      new THREE.Vector3().fromArray(renderFrame.localBbox.min),
+      new THREE.Vector3().fromArray(renderFrame.localBbox.max),
     );
   } else {
     const allPositions = [];
@@ -292,8 +324,18 @@ window.addMesh = function (geometriesData) {
   scene.add(group);
   currentMesh = group;
 
-  // Fit camera to combined bounds (unified or local)
-  fitCameraToBox(boundsBox);
+  // Fit camera. If a render frame is supplied, use its shared frustumSize so
+  // every parser of the same IFC file renders at the same zoom; otherwise fall
+  // back to this geometry's own size.
+  const cameraMaxDim =
+    renderFrame !== null
+      ? renderFrame.frustumSize
+      : Math.max(
+          boundsBox.max.x - boundsBox.min.x,
+          boundsBox.max.y - boundsBox.min.y,
+          boundsBox.max.z - boundsBox.min.z,
+        );
+  fitCameraToMaxDim(cameraMaxDim);
 
   // Update stats
   entityCountEl.textContent = String(entityKeys.length);
@@ -385,6 +427,8 @@ function createWireframe(geometry) {
   // Create vertex points
   const vertices = extractUniqueVertices(posAttr, idxAttr);
   const pointsGroup = createVertexPoints(vertices);
+  pointsGroup.visible = showVertexSpheres;
+  vertexSpheresGroup = pointsGroup;
   group.add(pointsGroup);
 
   return group;
@@ -410,14 +454,13 @@ function extractUniqueVertices(posAttr, idxAttr) {
 
 function createVertexPoints(vertices) {
   const group = new THREE.Group();
-  const pointGeometry = new THREE.SphereGeometry(0.01, 6, 6);
+  const pointGeometry = new THREE.SphereGeometry(VERTEX_SPHERE_SIZE, 12, 12);
   const pointMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: VERTEX_SPHERE_COLOR,
     transparent: true,
-    opacity: 0.5,
+    opacity: 0.9,
     depthTest: false,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
   });
 
   for (const [key, count] of vertices) {
@@ -432,11 +475,7 @@ function createVertexPoints(vertices) {
 }
 
 // === Camera Fitting ===
-function fitCameraToBox(box) {
-  const size = new THREE.Vector3();
-  box.getSize(size);
-
-  const maxDim = Math.max(size.x, size.y, size.z);
+function fitCameraToMaxDim(maxDim) {
   const padding = 1.5;
 
   // Update orthographic camera frustum

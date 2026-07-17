@@ -18,6 +18,11 @@ type VisualComparisonPairAsset = {
   leftLabel: string;
   matchClass: string;
   rightLabel: string;
+  spheresDiffImagePath: string;
+  spheresDiffPercentage: string;
+  spheresImageAPath: string;
+  spheresImageBPath: string;
+  spheresMatchClass: string;
 };
 
 type VisualComparisonViewModel = {
@@ -28,6 +33,11 @@ type VisualComparisonViewModel = {
   defaultLeftLabel: string;
   defaultMatchClass: string;
   defaultRightLabel: string;
+  defaultSpheresDiffImagePath: string;
+  defaultSpheresDiffPercentage: string;
+  defaultSpheresImageAPath: string;
+  defaultSpheresImageBPath: string;
+  defaultSpheresMatchClass: string;
   onionId: string;
   pairsJson: string;
   viewId: string;
@@ -397,6 +407,11 @@ export class ReportGeneratorService {
         defaultLeftLabel: defaultPair.leftLabel,
         defaultMatchClass: defaultPair.matchClass,
         defaultRightLabel: defaultPair.rightLabel,
+        defaultSpheresDiffImagePath: defaultPair.spheresDiffImagePath,
+        defaultSpheresDiffPercentage: defaultPair.spheresDiffPercentage,
+        defaultSpheresImageAPath: defaultPair.spheresImageAPath,
+        defaultSpheresImageBPath: defaultPair.spheresImageBPath,
+        defaultSpheresMatchClass: defaultPair.spheresMatchClass,
         onionId: this.toDomId(
           `onion-${comparison.ifcFileName}-${defaultLeftParserId}-${defaultRightParserId}-${viewName}`,
         ),
@@ -433,6 +448,12 @@ export class ReportGeneratorService {
       ? [pairView.imagePaths[1] ?? "", pairView.imagePaths[0] ?? ""]
       : [pairView.imagePaths[0] ?? "", pairView.imagePaths[1] ?? ""];
 
+    const spheresPaths = pairView.spheresImagePaths ?? ["", ""];
+    const orderedSpheresPaths = isReversed
+      ? [spheresPaths[1] ?? "", spheresPaths[0] ?? ""]
+      : [spheresPaths[0] ?? "", spheresPaths[1] ?? ""];
+    const spheresPixelDiffPercentage = pairView.spheresPixelDiffPercentage;
+
     return {
       diffImagePath: this.toRelativeDiffImagePath(
         pairView.diffImagePath,
@@ -449,6 +470,26 @@ export class ReportGeneratorService {
       matchClass: this.getImageMatchClass(pairView.pixelDiffPercentage),
       rightLabel:
         parserLabelById.get(rightParserId) ?? rightParserId ?? "Right parser",
+      spheresDiffImagePath: this.toRelativeDiffImagePath(
+        pairView.spheresDiffImagePath,
+        comparison.ifcFileName,
+      ),
+      spheresDiffPercentage:
+        spheresPixelDiffPercentage !== undefined &&
+        spheresPixelDiffPercentage >= 0
+          ? `${spheresPixelDiffPercentage.toFixed(2)}%`
+          : "N/A",
+      spheresImageAPath: this.toRelativeParserImagePath(
+        orderedSpheresPaths[0],
+        comparison,
+      ),
+      spheresImageBPath: this.toRelativeParserImagePath(
+        orderedSpheresPaths[1],
+        comparison,
+      ),
+      spheresMatchClass: this.getImageMatchClass(
+        spheresPixelDiffPercentage ?? -1,
+      ),
     };
   }
 
@@ -465,6 +506,11 @@ export class ReportGeneratorService {
       leftLabel: parserLabelById.get(leftParserId) ?? leftParserId,
       matchClass: "no",
       rightLabel: parserLabelById.get(rightParserId) ?? rightParserId,
+      spheresDiffImagePath: "",
+      spheresDiffPercentage: "N/A",
+      spheresImageAPath: "",
+      spheresImageBPath: "",
+      spheresMatchClass: "no",
     };
   }
 
